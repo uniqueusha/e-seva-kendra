@@ -8,8 +8,9 @@ app.use(express.json({ limit: '100mb' }));
 
 
 //Admin route
-//const userRoute = require("./src/routes/admin/service_type.route");
 const userRoute = require("./src/routes/admin/user.route");
+const prioritiesRoute = require("./src/routes/admin/priorities.route");
+const statusRoute = require("./src/routes/admin/status.route");
 
 app.use(bodyParser.json());
 app.use((req,res,next)=>{
@@ -26,8 +27,10 @@ app.use((req,res,next)=>{
 });
  app.use(cors());
 //Admin route
-//app.use('/api/service_type',servicetypeRoute);
 app.use('/api/user',userRoute);
+app.use('/api/priorities',prioritiesRoute);
+app.use('/api/status',statusRoute);
+
 
 
 module.exports = app;
