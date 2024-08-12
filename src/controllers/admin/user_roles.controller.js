@@ -26,38 +26,44 @@ error500 = (error, res) => {
 
 //Add User Role
 const addUserRole = async (req, res) => {
-    const  role_id  = req.body.role_id  ? req.body.role_id.trim()  : '';
-    const user_id  = req.companyData.user_id ;
- 
+    const role_id = req.body.role_id ? req.body.role_id : '';
+    const user_id = req.companyData.user_id;
+
     if (!role_id) {
         return error422("Role Id is required.", res);
-    }  else if (!user_id) {
+    } else if (!user_id) {
         return error422("User ID is required.", res);
     }
 
-    //check Role already is exists or not
-    const isExistRoleQuery = `SELECT * FROM priorities WHERE user_id =?`;
-    const isExistRoleResult = await pool.query(isExistRoleQuery, [ priority_name.toLowerCase(), user_id]);
-    if (isExistRoleResult[0].length > 0) {
+    // Check if the role exists
+    const isExistRoleQuery = `SELECT * FROM roles WHERE role_id = ?`;
+    const isExistRoleResult = await pool.query(isExistRoleQuery, [role_id]);
+
+    if (isExistRoleResult[0].length === 0) {
+        // If no role is found, return an error
         return error422("Role not found.", res);
-    } 
+    }
+
     // Attempt to obtain a database connection
     let connection = await getConnection();
     try {
-         //Start the transaction
-         await connection.beginTransaction();
-        //insert into Prioritie
-        const insertPriorityQuery = `INSERT INTO priorities (priority_name, user_id ) VALUES (?, ?)`;
-        const insertPriorityValues = [priority_name, user_id];
-        const priorityResult = await connection.query(insertPriorityQuery, insertPriorityValues);
-       
-        //commit the transation
+        // Start the transaction
+        await connection.beginTransaction();
+
+        // Insert into User Role
+        const insertUserRoleQuery = `INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`;
+        const insertUserRoleValues = [user_id, role_id];
+        await connection.query(insertUserRoleQuery, insertUserRoleValues);
+
+        // Commit the transaction
         await connection.commit();
         res.status(200).json({
             status: 200,
-            message: "Prioritie added successfully",
+            message: "User Role added successfully",
         });
     } catch (error) {
+        // Rollback the transaction in case of an error
+        await connection.rollback();
         return error500(error, res);
     } finally {
         await connection.release();
@@ -65,8 +71,9 @@ const addUserRole = async (req, res) => {
 };
 
 
+
 //Get User_Role List...
-const getUserRole = async (req, res) => {
+const getUserRoles = async (req, res) => {
     const { page, perPage, key } = req.query;
     const user_id  = req.companyData.user_id ;
     // Attempt to obtain a database connection
@@ -75,21 +82,18 @@ const getUserRole = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getPrioritiesQuery = `SELECT * FROM priorities WHERE user_id = ${user_id}`;
-        let countQuery = `SELECT COUNT(*) AS total FROM priorities WHERE user_id = ${user_id}`;
+        let getUserRoleQuery = `SELECT * FROM user_roles WHERE user_id = ${user_id}`;
+        let countQuery = `SELECT COUNT(*) AS total FROM user_roles WHERE user_id = ${user_id}`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getPrioritiesQuery += ` AND e.status = 1`;
+                getUserRoleQuery += ` AND e.status = 1`;
                 countQuery += ` AND e.status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getPrioritiesQuery += ` AND e.status = 0`;
+                getUserRoleQuery += ` AND e.status = 0`;
                 countQuery += ` AND e.status = 0`;
-            } else {
-                getPrioritiesQuery += ` AND  LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
-            }
+            } 
         }
         // Apply pagination if both page and perPage are provided
         let total = 0;
@@ -98,15 +102,15 @@ const getUserRole = async (req, res) => {
             total = parseInt(totalResult[0][0].total);
 
             const start = (page - 1) * perPage;
-            getPrioritiesQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+            getUserRoleQuery += ` LIMIT ${perPage} OFFSET ${start}`;
         }
-        const result = await connection.query(getPrioritiesQuery);
-        const priorities = result[0];
+        const result = await connection.query(getUserRoleQuery);
+        const userRole = result[0];
 
         const data = {
             status: 200,
-            message: "Priorities retrieved successfully",
-            data: priorities,
+            message: "User Role retrieved successfully",
+            data: userRole,
         };
         // Add pagination information if provided
         if (page && perPage) {
@@ -125,3 +129,94 @@ const getUserRole = async (req, res) => {
         await connection.release();
     }
 };
+
+// get user role by id...
+const getUserRole = async (req, res) => {
+    const userRoleId = parseInt(req.params.id);
+    const user_id = req.companyData.user_id;
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        const userRoleQuery = `SELECT * FROM user_roles WHERE user_role_id = ? && user_id = ?`;
+        const userRoleResult = await connection.query(userRoleQuery, [userRoleId, user_id]);
+        if (userRoleResult[0].length == 0) {
+             return error422("user Role Not Found.", res);
+        }
+        const userRole = userRoleResult[0][0];
+        res.status(200).json({
+            status: 200,
+            message: "User Role Retrived Successfully",
+            data: userRole,
+        });
+} catch (error) {
+    error500(error, res);
+} finally {
+    if (pool) {
+        pool.releaseConnection();
+    }
+  }
+};
+
+//update User Role...
+const updateUserRole = async (req, res) => {
+    const userRoleId = parseInt(req.params.id);
+    const role_id = req.body.role_id ? req.body.role_id : '';
+    const user_id  = req.companyData.user_id;
+
+    if (!userRoleId) {
+        return error422("User Role is required.", res);
+    } else if (!user_id) {
+        return error422("User ID is required.", res);
+    }
+
+    // Check if  role exists
+    const roleQuery = "SELECT * FROM roles WHERE role_id = ? AND user_id = ?";
+    const roleResult = await pool.query(roleQuery, [role_id, user_id]);
+    if (roleResult[0].length === 0) {
+        return error422("Role Not Found.", res);
+    }
+
+    // Check if user role exists
+    const roleUserQuery = "SELECT * FROM user_roles WHERE user_role_id = ? AND user_id = ?";
+    const roleUserResult = await pool.query(roleUserQuery, [userRoleId, user_id]);
+    if (roleUserResult[0].length === 0) {
+        return error422("User Role Not Found.", res);
+    }
+
+
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Update user role details
+        const updateQuery = `UPDATE user_roles SET user_id = ? WHERE user_role_id = ?`;
+        await connection.query(updateQuery, [user_id, userRoleId]);
+
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: "user role updated successfully.",
+        });
+    } catch (error) {
+        await connection.rollback();
+        return error500(error, res);
+    } finally {
+        await connection.release();
+    }
+};
+
+module.exports = { 
+     addUserRole,
+     getUserRoles,
+     getUserRole,
+     updateUserRole
+}
