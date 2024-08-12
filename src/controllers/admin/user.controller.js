@@ -79,8 +79,6 @@ const addUser = async (req, res) => {
         });
     } catch (error) {
         await connection.rollback();
-        console.log(error);
-        
         return error500(error, res);
     } finally {
         await connection.release();
@@ -164,36 +162,36 @@ const getUsers = async (req, res) => {
         await connection.beginTransaction();
 
         let getUserQuery = `SELECT * FROM users`;
-        let countQuery = `SELECT COUNT(*) AS total FROM user`;
+        let countQuery = `SELECT COUNT(*) AS total FROM users`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getUserQuery += ` AND e.status = 1`;
-                countQuery += ` AND e.status = 1`;
+                getUserQuery += ` WHERE e.status = 1`;
+                countQuery += ` WHERE e.status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getUserQuery += ` AND e.status = 0`;
-                countQuery += ` AND e.status = 0`;
+                getUserQuery += ` WHERE e.status = 0`;
+                countQuery += ` WHERE e.status = 0`;
             } else {
-                getUserQuery += ` AND  LOWER(user_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(user_name) LIKE '%${lowercaseKey}%' `;
+                getUserQuery += ` WHERE  LOWER(user_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` WHERE LOWER(user_name) LIKE '%${lowercaseKey}%' `;
             }
         }
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
-            const totalResult = await pool.query(countQuery);
+            const totalResult = await connection.query(countQuery);
             total = parseInt(totalResult[0][0].total);
 
             const start = (page - 1) * perPage;
             getUserQuery += ` LIMIT ${perPage} OFFSET ${start}`;
         }
-        const result = await pool.query(getUserQuery);
+        const result = await connection.query(getUserQuery);
         const user = result[0];
 
         const data = {
             status: 200,
-            message: "Employee retrieved successfully",
+            message: "User retrieved successfully",
             data: user,
         };
         // Add pagination information if provided
@@ -247,50 +245,68 @@ try {
 
 //update user...
 const updateUser = async (req, res) => {
-    const userId = parseInt(req.params.id);
-    const user_name = req.body.user_name ? req.body.user_name.trim() : '';
-    const email_id = req.body.email_id ? req.body.email_id.trim() : '';
-    const designation_id = req.body.designation_id ? req.body.designation_id : '';
+    const userId = parseInt(req.params.id);  // Extract user ID from request parameters
+    const user_name = req.body.user_name ? req.body.user_name.trim() : '';  // Extract and trim user_name from request body
+    const email_id = req.body.email_id ? req.body.email_id.trim() : '';  // Extract and trim email_id from request body
+    const designation_id = req.body.designation_id ? req.body.designation_id : '';  // Extract designation_id from request body
+    
+    // Validate userId and user_name
     if (!userId) {
         return error422("User Id is required.", res);
-    } else if(!user_name) {
+    } else if (!user_name) {
         return error422("User Name is required.", res);
     }
-    // Check if user exists
-    const userQuery = "SELECT * FROM users WHERE user_id  = ?";
+
+    // Check if the user exists in the database
+    const userQuery = "SELECT * FROM users WHERE user_id = ?";
     const userResult = await pool.query(userQuery, [userId]);
-    if (userResult[0].length == 0) {
-    return error422("User Not Found.", res);
+    if (userResult[0].length === 0) {
+        return error422("User Not Found.", res);
     }
-    // check if designation exists
+
+    // Check if the designation exists in the database
     const isDesignationExistsQuery = "SELECT * FROM designations WHERE designation_id = ?";
     const isDesignationExistsResult = await pool.query(isDesignationExistsQuery, [designation_id]);
-    if (isDesignationExistsResult[0].length == 0) {
+    if (isDesignationExistsResult[0].length === 0) {
         return error422("Designation Not Found.", res);
     }
-   
-    // Attempt to obtain a database connection
-    let connection = await getConnection()
-    
+
+    // Check if the user name already exists for a different user
+    const isUserNameExistsQuery = "SELECT * FROM users WHERE user_name = ? AND user_id != ?";
+    const isUserNameExistsResult = await pool.query(isUserNameExistsQuery, [user_name, userId]);
+    if (isUserNameExistsResult[0].length > 0) {
+        return error422("User Name already exists.", res);  // Return error if user_name is taken by another user
+    }
+
+    // Obtain a database connection
+    let connection = await getConnection();
+
     try {
         // Start a transaction
         await connection.beginTransaction();
-        //update user details
-        const updateQuery = `UPDATE users SET user_name = ?, email_id = ? ,designation_id= ? WHERE user_id = ?`;
-        await connection.query(updateQuery, [user_name, email_id, designation_id, userId]);
-        //commit the transaction
+
+        // Update user details in the database
+        const updateQuery = `UPDATE users SET user_name = ?, email_id = ?, designation_id = ? WHERE user_id = ?`;
+        const updateResult = await connection.query(updateQuery, [user_name, email_id, designation_id, userId]);
+
+        // Commit the transaction
         await connection.commit();
+
+        // Return success response
         return res.status(200).json({
             status: 200,
-            message: "Employee updated successfully.",
-    });
+            message: "User updated successfully.",
+        });
     } catch (error) {
+        // Rollback the transaction in case of an error
         await connection.rollback();
         return error500(error, res);
     } finally {
+        // Release the database connection
         await connection.release();
     }
 };
+
 //status change of user...
 const onStatusChange = async (req, res) => {
     const userId = parseInt(req.params.id);
@@ -329,7 +345,8 @@ const onStatusChange = async (req, res) => {
         await connection.query(updateQuery, [status, userId]);
   
         const statusMessage = status === 1 ? "activated" : "deactivated";
-  
+        //commit the transation
+        await connection.commit();
         return res.status(200).json({
             status: 200,
             message: `User ${statusMessage} successfully.`,
@@ -347,6 +364,8 @@ const getUserWma = async (req, res, next) => {
     let connection = await getConnection();
 
     try {
+        // Start a transaction
+        await connection.beginTransaction();
         // Start a transaction
         let userQuery = `SELECT * FROM users WHERE status = 1`; 
         const userResult = await connection.query(userQuery);
