@@ -41,7 +41,7 @@ const addDesignation = async (req, res) => {
     const isExistDesignationQuery = `SELECT * FROM designations WHERE designation_name= ? AND user_id=? `;
     const isExistDesignationResult = await pool.query(isExistDesignationQuery, [ designation_name,user_id]);
     if (isExistDesignationResult[0].length > 0) {
-        return error422(" Designation Name is already exists.", res);
+        return error422("Designation Name is already exists.", res);
     } 
 
     // attempt to obtain a database connection
