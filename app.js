@@ -9,6 +9,10 @@ app.use(express.json({ limit: '100mb' }));
 
 //Admin route
 const userRoute = require("./src/routes/admin/user.route");
+const designationRoute = require("./src/routes/admin/designation.route");
+const rolesRoute = require("./src/routes/admin/roles.route");
+const serviceRoute = require("./src/routes/admin/services.route");
+const documenttypeRoute = require("./src/routes/admin/document.type.route");
 const prioritiesRoute = require("./src/routes/admin/priorities.route");
 const statusRoute = require("./src/routes/admin/status.route");
 const userRoleRoute = require("./src/routes/admin/user_roles.route");
@@ -30,11 +34,13 @@ app.use((req,res,next)=>{
  app.use(cors());
 //Admin route
 app.use('/api/user',userRoute);
+app.use('/api/designation',designationRoute);
+app.use('/api/role',rolesRoute);
+app.use('/api/service',serviceRoute);
+app.use('/api/document',documenttypeRoute);
 app.use('/api/priorities',prioritiesRoute);
 app.use('/api/status',statusRoute);
 app.use('/api/userRole',userRoleRoute);
 // app.use('/api/taskHeader',taskHeaderRoute);
-
-
 
 module.exports = app;
