@@ -220,7 +220,7 @@ const updateDocumentType = async (req, res) => {
             return error422("Document Type already exists.", res);
         }
         
-        // Update the designation record with new data
+        // Update the document_type record with new data
         const updateQuery = `
             UPDATE document_type
             SET document_type = ?, user_id = ?
