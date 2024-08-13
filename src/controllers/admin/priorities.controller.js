@@ -81,16 +81,17 @@ const getPriorities = async (req, res) => {
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getPrioritiesQuery += ` AND e.status = 1`;
-                countQuery += ` AND e.status = 1`;
+                getPrioritiesQuery += ` AND status = 1`;
+                countQuery += ` AND status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getPrioritiesQuery += ` AND e.status = 0`;
-                countQuery += ` AND e.status = 0`;
+                getPrioritiesQuery += ` AND status = 0`;
+                countQuery += ` AND status = 0`;
             } else {
                 getPrioritiesQuery += ` AND  LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
                 countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
             }
         }
+        getPrioritiesQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -153,8 +154,8 @@ const getpriority = async (req, res) => {
 } catch (error) {
     error500(error, res);
 } finally {
-    if (pool) {
-        pool.releaseConnection();
+    if (connection) {
+        connection.releaseConnection();
     }
   }
 };
@@ -286,8 +287,8 @@ const getPrioritiesWma = async (req, res, next) => {
     } catch (error) {
         error500(error, res);
     } finally {
-        if (pool) {
-            pool.releaseConnection();
+        if (connection) {
+            connection.releaseConnection();
       }
     }
 };
