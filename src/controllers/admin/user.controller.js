@@ -167,17 +167,17 @@ const getUsers = async (req, res) => {
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getUserQuery += ` WHERE e.status = 1`;
-                countQuery += ` WHERE e.status = 1`;
+                getUserQuery += ` WHERE status = 1`;
+                countQuery += ` WHERE status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getUserQuery += ` WHERE e.status = 0`;
-                countQuery += ` WHERE e.status = 0`;
+                getUserQuery += ` WHERE status = 0`;
+                countQuery += ` WHERE status = 0`;
             } else {
                 getUserQuery += ` WHERE  LOWER(user_name) LIKE '%${lowercaseKey}%' `;
                 countQuery += ` WHERE LOWER(user_name) LIKE '%${lowercaseKey}%' `;
             }
         }
-        getUserQuery += " ORDER BY user_name DESC";
+        getUserQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -240,8 +240,8 @@ try {
     
     error500(error, res);
 } finally {
-    if (pool) {
-      pool.releaseConnection();
+    if (connection) {
+      connection.releaseConnection();
     }
   }
 };
@@ -376,14 +376,14 @@ const getUserWma = async (req, res, next) => {
   
         res.status(200).json({
             status: 200,
-            message: "Employee retrieved successfully.",
+            message: "User retrieved successfully.",
             data: user,
       });
     } catch (error) {
         error500(error, res);
     } finally {
-        if (pool) {
-            pool.releaseConnection();
+        if (connection) {
+            connection.releaseConnection();
       }
     }
 };

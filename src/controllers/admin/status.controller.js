@@ -81,16 +81,17 @@ const getStatus = async (req, res) => {
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getStatusQuery += ` AND e.status = 1`;
-                countQuery += ` AND e.status = 1`;
+                getStatusQuery += ` AND status = 1`;
+                countQuery += ` AND status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getStatusQuery += ` AND e.status = 0`;
-                countQuery += ` AND e.status = 0`;
+                getStatusQuery += ` AND status = 0`;
+                countQuery += ` AND status = 0`;
             } else {
                 getStatusQuery += ` AND  LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
                 countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
             }
         }
+        getStatusQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -152,8 +153,8 @@ const getStatusById = async (req, res) => {
 } catch (error) {
     error500(error, res);
 } finally {
-    if (pool) {
-        pool.releaseConnection();
+    if (connection) {
+        connection.releaseConnection();
     }
   }
 };
@@ -284,8 +285,8 @@ const getStatusWma = async (req, res, next) => {
     } catch (error) {
         error500(error, res);
     } finally {
-        if (pool) {
-            pool.releaseConnection();
+        if (connection) {
+            connection.releaseConnection();
       }
     }
 };

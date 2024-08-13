@@ -26,13 +26,21 @@ error500 = (error, res) => {
 
 //Add User Role
 const addUserRole = async (req, res) => {
+    const user_id = req.body.user_id ? req.body.user_id : '';
     const role_id = req.body.role_id ? req.body.role_id : '';
-    const user_id = req.companyData.user_id;
-
+   
     if (!role_id) {
         return error422("Role Id is required.", res);
     } else if (!user_id) {
         return error422("User ID is required.", res);
+    }
+
+    // Check if the user exists
+    const isExistUserQuery = `SELECT * FROM users WHERE user_id = ?`;
+    const isExistUserResult = await pool.query(isExistUserQuery, [user_id]);
+
+    if (isExistUserResult[0].length === 0) {
+        return error422("User not found.", res);
     }
 
     // Check if the role exists
@@ -75,26 +83,27 @@ const addUserRole = async (req, res) => {
 //Get User_Role List...
 const getUserRoles = async (req, res) => {
     const { page, perPage, key } = req.query;
-    const user_id  = req.companyData.user_id ;
     // Attempt to obtain a database connection
     let connection = await getConnection();
     try {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getUserRoleQuery = `SELECT * FROM user_roles WHERE user_id = ${user_id}`;
-        let countQuery = `SELECT COUNT(*) AS total FROM user_roles WHERE user_id = ${user_id}`;
+        let getUserRoleQuery = `SELECT * FROM user_roles WHERE 1`;
+        let countQuery = `SELECT COUNT(*) AS total FROM user_roles WHERE 1`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getUserRoleQuery += ` AND e.status = 1`;
-                countQuery += ` AND e.status = 1`;
+                getUserRoleQuery += ` AND status = 1`;
+                countQuery += ` AND status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getUserRoleQuery += ` AND e.status = 0`;
-                countQuery += ` AND e.status = 0`;
+                getUserRoleQuery += ` AND status = 0`;
+                countQuery += ` AND status = 0`;
             } 
         }
+
+        getUserRoleQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -104,6 +113,7 @@ const getUserRoles = async (req, res) => {
             const start = (page - 1) * perPage;
             getUserRoleQuery += ` LIMIT ${perPage} OFFSET ${start}`;
         }
+        
         const result = await connection.query(getUserRoleQuery);
         const userRole = result[0];
 
@@ -133,7 +143,6 @@ const getUserRoles = async (req, res) => {
 // get user role by id...
 const getUserRole = async (req, res) => {
     const userRoleId = parseInt(req.params.id);
-    const user_id = req.companyData.user_id;
     
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -142,10 +151,10 @@ const getUserRole = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const userRoleQuery = `SELECT * FROM user_roles WHERE user_role_id = ? && user_id = ?`;
-        const userRoleResult = await connection.query(userRoleQuery, [userRoleId, user_id]);
+        const userRoleQuery = `SELECT * FROM user_roles WHERE user_role_id = ?`;
+        const userRoleResult = await connection.query(userRoleQuery, [userRoleId]);
         if (userRoleResult[0].length == 0) {
-             return error422("user Role Not Found.", res);
+             return error422("User Role Not Found.", res);
         }
         const userRole = userRoleResult[0][0];
         res.status(200).json({
@@ -156,34 +165,41 @@ const getUserRole = async (req, res) => {
 } catch (error) {
     error500(error, res);
 } finally {
-    if (pool) {
-        pool.releaseConnection();
-    }
-  }
+    await connection.release();
+}
 };
 
 //update User Role...
 const updateUserRole = async (req, res) => {
     const userRoleId = parseInt(req.params.id);
+    const user_id = req.body.user_id ? req.body.user_id : '';
     const role_id = req.body.role_id ? req.body.role_id : '';
-    const user_id  = req.companyData.user_id;
 
     if (!userRoleId) {
         return error422("User Role is required.", res);
     } else if (!user_id) {
         return error422("User ID is required.", res);
+    } else if (!role_id) {
+        return error422("Role ID is required.", res);
+    } 
+
+    // Check if  role exists
+    const userQuery = "SELECT * FROM users WHERE user_id = ?";
+    const userResult = await pool.query(userQuery, [user_id]);
+    if (userResult[0].length === 0) {
+        return error422("User Not Found.", res);
     }
 
     // Check if  role exists
-    const roleQuery = "SELECT * FROM roles WHERE role_id = ? AND user_id = ?";
-    const roleResult = await pool.query(roleQuery, [role_id, user_id]);
+    const roleQuery = "SELECT * FROM roles WHERE role_id = ?";
+    const roleResult = await pool.query(roleQuery, [role_id]);
     if (roleResult[0].length === 0) {
         return error422("Role Not Found.", res);
     }
 
     // Check if user role exists
-    const roleUserQuery = "SELECT * FROM user_roles WHERE user_role_id = ? AND user_id = ?";
-    const roleUserResult = await pool.query(roleUserQuery, [userRoleId, user_id]);
+    const roleUserQuery = "SELECT * FROM user_roles WHERE user_role_id = ?";
+    const roleUserResult = await pool.query(roleUserQuery, [userRoleId]);
     if (roleUserResult[0].length === 0) {
         return error422("User Role Not Found.", res);
     }
@@ -197,8 +213,8 @@ const updateUserRole = async (req, res) => {
         await connection.beginTransaction();
 
         // Update user role details
-        const updateQuery = `UPDATE user_roles SET user_id = ? WHERE user_role_id = ?`;
-        await connection.query(updateQuery, [user_id, userRoleId]);
+        const updateQuery = `UPDATE user_roles SET user_id = ?,role_id = ? WHERE user_role_id = ?`;
+        await connection.query(updateQuery, [user_id,role_id,userRoleId]);
 
         // Commit the transaction
         await connection.commit();
