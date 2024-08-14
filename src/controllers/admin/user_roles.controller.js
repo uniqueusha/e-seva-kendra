@@ -89,8 +89,18 @@ const getUserRoles = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getUserRoleQuery = `SELECT * FROM user_roles WHERE 1`;
-        let countQuery = `SELECT COUNT(*) AS total FROM user_roles WHERE 1`;
+        let getUserRoleQuery = `SELECT ur.user_role_id,u.user_name,r.role_name,ur.created_at FROM user_roles ur
+        JOIN users u
+        ON u.user_id = ur.user_id
+        JOIN roles r
+        ON r.user_id = u.user_id
+        WHERE 1`;
+        let countQuery = `SELECT COUNT(*) AS total FROM user_roles ur
+        JOIN users u
+        ON u.user_id = ur.user_id
+        JOIN roles r
+        ON r.user_id = u.user_id
+        WHERE 1`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -151,7 +161,12 @@ const getUserRole = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const userRoleQuery = `SELECT * FROM user_roles WHERE user_role_id = ?`;
+        const userRoleQuery = `SELECT ur.user_role_id,u.user_name,r.role_name,ur.created_at FROM user_roles ur
+        JOIN users u
+        ON u.user_id = ur.user_id
+        JOIN roles r
+        ON r.user_id = u.user_id
+        WHERE user_role_id = ?`;
         const userRoleResult = await connection.query(userRoleQuery, [userRoleId]);
         if (userRoleResult[0].length == 0) {
              return error422("User Role Not Found.", res);
