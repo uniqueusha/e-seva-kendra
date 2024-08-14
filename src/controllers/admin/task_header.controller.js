@@ -176,7 +176,7 @@ const getTaskHeaders = async (req, res) => {
 };
 
 // get Task Header by id...
-const getpTaskHeader = async (req, res) => {
+const getTaskHeader = async (req, res) => {
     const taskHeaderId = parseInt(req.params.id);
     const user_id = req.companyData.user_id;
     
@@ -301,9 +301,41 @@ const updateTaskheader = async (req, res) => {
     }
 };
 
+// get Task list by assigned to...
+const getTaskAssignedTo = async (req, res) => {
+    const assignedTo = parseInt(req.query.assignedTo);
+    const user_id = req.companyData.user_id;
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        const taskAssignedToQuery = `SELECT * FROM task_header WHERE assigned_to = ? AND user_id = ? `;
+
+        const taskAssignedToResult = await connection.query(taskAssignedToQuery, [assignedTo, user_id]);
+        if (taskAssignedToResult[0].length == 0) {
+             return error422("Task Assigned To Not Found.", res);
+        }
+        const taskAssignedTo = taskAssignedToResult[0][0];
+        res.status(200).json({
+            status: 200,
+            message: "Task Assigned To Retrived Successfully",
+            data: taskAssignedTo,
+        });
+    } catch (error) {
+    error500(error, res);
+    } finally {
+    await connection.release();
+    }
+};
+
 module.exports = {
     addtaskHeader,
     getTaskHeaders,
-    getpTaskHeader,
-    updateTaskheader
+    getTaskHeader,
+    updateTaskheader,
+    getTaskAssignedTo
 }
