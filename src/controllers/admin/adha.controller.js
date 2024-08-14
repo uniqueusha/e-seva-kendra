@@ -107,7 +107,7 @@ const getAdhas = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_id, s.service_id, dt.document_type_id FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name FROM adha a
         LEFT JOIN users u 
         ON a.user_id = u.user_id
         LEFT JOIN services s
