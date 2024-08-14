@@ -83,7 +83,7 @@ const getRoles = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getRoleQuery = `SELECT r.*, u.user_id FROM roles r
+        let getRoleQuery = `SELECT r.*, u.user_name FROM roles r
         LEFT JOIN users u 
         ON r.user_id = u.user_id
         WHERE 1 AND r.user_id = ${user_id}`;
@@ -106,7 +106,7 @@ const getRoles = async (req, res) => {
                 countQuery += ` AND  LOWER(r.role_name) LIKE '%${lowercaseKey}%' `;
             }
         }
-        //getRoleQuery += " ORDER BY d.cts DESC";
+        getRoleQuery += " ORDER BY r.created_at DESC";
 
         // Apply pagination if both page and perPage are provided
         let total = 0;

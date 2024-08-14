@@ -84,7 +84,7 @@ const getDocumentTypes = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getDocumentTypeQuery = `SELECT dt.*, u.user_id FROM document_type dt
+        let getDocumentTypeQuery = `SELECT dt.*, u.user_name FROM document_type dt
         LEFT JOIN users u 
         ON dt.user_id = u.user_id
         WHERE 1 AND dt.user_id = ${user_id}`;
@@ -107,7 +107,7 @@ const getDocumentTypes = async (req, res) => {
                 countQuery += ` AND  LOWER(dt.document_type) LIKE '%${lowercaseKey}%' `;
             }
         }
-        //getDocumentTypeQuery += " ORDER BY d.cts DESC";
+        getDocumentTypeQuery += " ORDER BY dt.created_at DESC";
 
         // Apply pagination if both page and perPage are provided
         let total = 0;
@@ -242,10 +242,106 @@ const updateDocumentType = async (req, res) => {
     }
 }
 
+//status change of document_type...
+const onStatusChange = async (req, res) => {
+    const documentTypeId = parseInt(req.params.id);
+    const status = parseInt(req.query.status); // Validate and parse the status parameter
+    const user_id = req.companyData.user_id;
 
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        // Check if the document type  exists
+        const documenttypeQuery = "SELECT * FROM document_type WHERE document_type_id = ? AND user_id=?";
+        const documenttypeResult = await connection.query(documenttypeQuery, [documentTypeId,user_id]);
+
+        if (documenttypeResult[0].length == 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Document type not found.",
+            });
+        }
+
+        // Validate the status parameter
+        if (status !== 0 && status !== 1) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid status value. Status must be 0 (inactive) or 1 (active).",
+            });
+        }
+
+        // Soft update the document_type status
+        const updateQuery = `
+            UPDATE document_type
+            SET status = ?
+            WHERE document_type_id = ?
+        `;
+
+        await connection.query(updateQuery, [status, documentTypeId]);
+
+        const statusMessage = status === 1 ? "activated" : "deactivated";
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: `Document type ${statusMessage} successfully.`,
+        });
+    } catch (error) {
+        return error500(error,res);
+    }finally {
+        if (connection) connection.release()
+    }
+};
+
+//get document type active...
+const getDocumentTypeWma = async (req, res) => {
+    const user_id = req.companyData.user_id;
+
+    const checkUserQuery = `SELECT * FROM users WHERE user_id = ${user_id}  `;
+    const userResult = await pool.query(checkUserQuery);
+    
+
+    let documenttypeQuery = `SELECT dt.*  FROM document_type dt 
+    LEFT JOIN users u 
+    ON u.user_id = dt.user_id 
+    WHERE dt.status = 1  ORDER BY dt.document_type`;
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        const documenttypeResult = await connection.query(documenttypeQuery);
+        const documenttype = documenttypeResult[0];
+
+        // Commit the transaction
+        await connection.commit();
+        
+        return res.status(200).json({
+            status: 200,
+            message: "Document type retrieved successfully.",
+            data: documenttype,
+        });
+    } catch (error) {
+        return error500(error,res);
+    }finally {
+        if (connection) connection.release()
+    }
+    
+}
 module.exports = {
     addDocumentType,
     getDocumentTypes,
     getDocumentType,
-    updateDocumentType
+    updateDocumentType,
+    onStatusChange,
+    getDocumentTypeWma
 }

@@ -64,7 +64,6 @@ const addDesignation = async (req, res) => {
             message: "Designation added successfully",
         });
     } catch (error) {
-        
         return error500(error, res);
     }finally {
         if (connection) connection.release()
@@ -84,7 +83,7 @@ const getDesignations = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getDesignationQuery = `SELECT d.*, u.user_id FROM designations d
+        let getDesignationQuery = `SELECT d.*, u.user_name FROM designations d
         LEFT JOIN users u 
         ON d.user_id = u.user_id
         WHERE 1 AND d.user_id = ${user_id}`;
@@ -107,7 +106,7 @@ const getDesignations = async (req, res) => {
                 countQuery += ` AND  LOWER(d.designation_name) LIKE '%${lowercaseKey}%' `;
             }
         }
-        //getDesignationQuery += " ORDER BY d.cts DESC";
+        getDesignationQuery += " ORDER BY d.created_at DESC";
 
         // Apply pagination if both page and perPage are provided
         let total = 0;

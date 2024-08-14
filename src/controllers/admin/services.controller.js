@@ -83,7 +83,7 @@ const getServices = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getServiceQuery = `SELECT s.*, u.user_id FROM services s
+        let getServiceQuery = `SELECT s.*, u.user_name FROM services s
         LEFT JOIN users u 
         ON s.user_id = u.user_id
         WHERE 1 AND s.user_id = ${user_id}`;
@@ -106,7 +106,7 @@ const getServices = async (req, res) => {
                 countQuery += ` AND  LOWER(s.services) LIKE '%${lowercaseKey}%' `;
             }
         }
-        //getServiceQuery += " ORDER BY d.cts DESC";
+        getServiceQuery += " ORDER BY s.created_at DESC";
 
         // Apply pagination if both page and perPage are provided
         let total = 0;
@@ -240,12 +240,106 @@ const updateService = async (req, res) => {
         if (connection) connection.release()
     }
 }
+//status change of service...
+const onStatusChange = async (req, res) => {
+    const serviceId = parseInt(req.params.id);
+    const status = parseInt(req.query.status); // Validate and parse the status parameter
+    const user_id = req.companyData.user_id;
 
+    // attempt to obtain a database connection
+    let connection = await getConnection();
 
+    try {
 
+        //start a transaction
+        await connection.beginTransaction();
+
+        // Check if the service exists
+        const serviceQuery = "SELECT * FROM services WHERE service_id = ? AND user_id=?";
+        const serviceResult = await connection.query(serviceQuery, [serviceId,user_id]);
+
+        if (serviceResult[0].length == 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Service not found.",
+            });
+        }
+
+        // Validate the status parameter
+        if (status !== 0 && status !== 1) {
+            return res.status(400).json({
+                status: 400,
+                message: "Invalid status value. Status must be 0 (inactive) or 1 (active).",
+            });
+        }
+
+        // Soft update the services status
+        const updateQuery = `
+            UPDATE services
+            SET status = ?
+            WHERE service_id = ?
+        `;
+
+        await connection.query(updateQuery, [status, serviceId]);
+
+        const statusMessage = status === 1 ? "activated" : "deactivated";
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: `Service ${statusMessage} successfully.`,
+        });
+    } catch (error) {
+        return error500(error,res);
+    }finally {
+        if (connection) connection.release()
+    }
+};
+
+//get service active...
+const getServiceWma = async (req, res) => {
+    const user_id = req.companyData.user_id;
+
+    const checkUserQuery = `SELECT * FROM users WHERE user_id = ${user_id}  `;
+    const userResult = await pool.query(checkUserQuery);
+    
+
+    let serviceQuery = `SELECT s.*  FROM services s 
+    LEFT JOIN users u 
+    ON u.user_id = s.user_id 
+    WHERE s.status = 1  ORDER BY s.services`;
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        const  serviceResult = await connection.query(serviceQuery);
+        const service =  serviceResult[0];
+
+        // Commit the transaction
+        await connection.commit();
+        
+        return res.status(200).json({
+            status: 200,
+            message: "Service retrieved successfully.",
+            data:  service,
+        });
+    } catch (error) {
+        return error500(error,res);
+    }finally {
+        if (connection) connection.release()
+    }
+    
+}
 module.exports = {
     addService,
     getServices,
     getService,
-    updateService
+    updateService,
+    onStatusChange,
+    getServiceWma
 }
