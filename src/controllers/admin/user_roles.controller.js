@@ -89,7 +89,7 @@ const getUserRoles = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getUserRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_name,ur.created_at FROM user_roles ur
+        let getUserRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_id,r.role_name,ur.created_at FROM user_roles ur
         JOIN users u
         ON u.user_id = ur.user_id
         JOIN roles r
@@ -161,7 +161,7 @@ const getUserRole = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const userRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_name,ur.created_at FROM user_roles ur
+        const userRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_id,r.role_name,ur.created_at FROM user_roles ur
         JOIN users u
         ON u.user_id = ur.user_id
         JOIN roles r
