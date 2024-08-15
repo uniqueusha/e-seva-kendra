@@ -305,7 +305,7 @@ const updateTaskheader = async (req, res) => {
 const getTaskAssignedTo = async (req, res) => {
     const assignedTo = parseInt(req.query.assignedTo);
     const user_id = req.companyData.user_id;
-    
+    // return res.json(user_id)
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -319,7 +319,7 @@ const getTaskAssignedTo = async (req, res) => {
         if (taskAssignedToResult[0].length == 0) {
              return error422("Task Assigned To Not Found.", res);
         }
-        const taskAssignedTo = taskAssignedToResult[0][0];
+        const taskAssignedTo = taskAssignedToResult[0];
         res.status(200).json({
             status: 200,
             message: "Task Assigned To Retrived Successfully",
@@ -332,10 +332,79 @@ const getTaskAssignedTo = async (req, res) => {
     }
 };
 
+//Report
+const getReport = async (req, res) => {
+    const { page, perPage, fromDate, toDate } = req.query;
+ 
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+    try {
+        //Start the transaction
+        await connection.beginTransaction();
+
+        let getReportQuery = `SELECT u.user_name,st.status_name,s.services FROM users u
+        JOIN status st
+        ON st.user_id = u.user_id
+        JOIN services s
+        ON s.user_id = u.user_id
+        `;
+    
+        let countQuery = `SELECT COUNT(*) AS total FROM users u
+        JOIN status st
+        ON st.user_id = u.user_id
+        JOIN services s
+        ON s.user_id = u.user_id
+        `;
+
+        // from date and to date
+        if (fromDate && toDate) {
+            getReportQuery += ` WHERE u.created_at >= '${fromDate}' AND u.created_at <= '${toDate}'`;
+            countQuery += ` WHERE u.created_at >= '${fromDate}' AND u.created_at <= '${toDate}'`;
+        }
+        
+        // getReportQuery += " ORDER BY u.created_at DESC";
+        // Apply pagination if both page and perPage are provided
+        let total = 0;
+        if (page && perPage) {
+            const totalResult = await connection.query(countQuery);
+            total = parseInt(totalResult[0][0].total);
+
+            const start = (page - 1) * perPage;
+            getReportQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+        }
+        const result = await connection.query(getReportQuery);
+        const report = result[0];
+
+        const data = {
+            status: 200,
+            message: "TasK Header retrieved successfully",
+            data: report,
+        };
+        // Add pagination information if provided
+        if (page && perPage) {
+            data.pagination = {
+                per_page: perPage,
+                total: total,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+            };
+        }
+
+        return res.status(200).json(data);
+    } catch (error) {
+        console.log(error);
+        
+        return error500(error, res);
+    } finally {
+        await connection.release();
+    }
+};
+
 module.exports = {
     addtaskHeader,
     getTaskHeaders,
     getTaskHeader,
     updateTaskheader,
-    getTaskAssignedTo
+    getTaskAssignedTo,
+    getReport
 }
