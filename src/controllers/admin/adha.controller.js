@@ -93,10 +93,9 @@ const addAdha = async (req, res) => {
         if (connection) connection.release()
     }
 }
-
-// get adha list...
+// get adha List...
 const getAdhas = async (req, res) => {
-    const { page, perPage, key } = req.query;
+    const { page, perPage,key } = req.query;
     const user_id = req.companyData.user_id;
 
     // attempt to obtain a database connection
@@ -107,7 +106,7 @@ const getAdhas = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name,s.services FROM adha a
         LEFT JOIN users u 
         ON a.user_id = u.user_id
         LEFT JOIN services s
@@ -138,6 +137,100 @@ const getAdhas = async (req, res) => {
                 countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
             }
         }
+        getAdhaQuery += " ORDER BY a.created_at DESC";
+
+        // Apply pagination if both page and perPage are provided
+        let total = 0;
+        if (page && perPage) {
+            const totalResult = await connection.query(countQuery);
+            total = parseInt(totalResult[0][0].total);
+
+            const start = (page - 1) * perPage;
+            getAdhaQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+        }
+
+        const result = await connection.query(getAdhaQuery);
+        const adha = result[0];
+
+        // Commit the transaction
+        await connection.commit();
+        const data = {
+            status: 200,
+            message: "Adha retrieved successfully",
+            data: adha,
+        };
+        // Add pagination information if provided
+        if (page && perPage) {
+            data.pagination = {
+                per_page: perPage,
+                total: total,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+            };
+        }
+
+        return res.status(200).json(data);
+    } catch (error) {
+        return error500(error, res);
+    }finally {
+        if (connection) connection.release()
+    }
+
+}
+// get adha report...
+const getAdhasReport = async (req, res) => {
+    const { page, perPage, key,fromDate,
+        toDate,service_id } = req.query;
+    const user_id = req.companyData.user_id;
+
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        let getAdhaQuery = `SELECT a.*, u.user_name,s.services FROM adha a
+        LEFT JOIN users u 
+        ON a.user_id = u.user_id
+        LEFT JOIN services s
+        ON a.service_id=s.service_id
+        LEFT JOIN document_type dt
+        ON a.document_type_id=dt.document_type_id
+        WHERE 1 AND a.user_id = ${user_id}`;
+
+        let countQuery = `SELECT COUNT(*) AS total FROM adha a
+        LEFT JOIN users u
+        ON a.user_id = u.user_id
+        LEFT JOIN services s
+        ON a.service_id=s.service_id
+        LEFT JOIN document_type dt
+        ON a.document_type_id=dt.document_type_id
+        WHERE 1 AND a.user_id = ${user_id} `; 
+        
+        if (key) {
+            const lowercaseKey = key.toLowerCase().trim();
+            if (lowercaseKey === "activated") {
+                getAdhaQuery += ` AND a.status = 1`;
+                countQuery += ` AND a.status = 1`;
+            } else if (lowercaseKey === "deactivated") {
+                getAdhaQuery += ` AND a.status = 0`;
+                countQuery += ` AND a.status = 0`;
+            } else {
+                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+            }
+        }
+        if (fromDate && toDate) {
+            getAdhaQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
+            countQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
+          }
+          if (service_id) {
+            getAdhaQuery += ` AND a.service_id = '${service_id}'`;
+            countQuery += ` AND a.service_id = '${service_id}'`;
+          }
         getAdhaQuery += " ORDER BY a.created_at DESC";
 
         // Apply pagination if both page and perPage are provided
@@ -321,6 +414,7 @@ const updateAdha = async (req, res) => {
 module.exports = {
     addAdha,
     getAdhas,
+    getAdhasReport,
     getAdha,
     updateAdha
 }
