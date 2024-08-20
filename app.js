@@ -19,6 +19,8 @@ const userRoleRoute = require("./src/routes/admin/user_roles.route");
 const taskHeaderRoute = require("./src/routes/admin/task_header.route");
 const workDetailsRoute = require("./src/routes/admin/work_details.route");
 const adhaRoute = require("./src/routes/admin/adha.route");
+const taskFooterRoute = require("./src/routes/admin/task_footer.route");
+
 
 app.use(bodyParser.json());
 app.use((req,res,next)=>{
@@ -46,5 +48,6 @@ app.use('/api/userRole',userRoleRoute);
 app.use('/api/taskHeader',taskHeaderRoute);
 app.use('/api/workDetails',workDetailsRoute);
 app.use('/api/adha',adhaRoute);
+app.use('/api/taskFooter',taskFooterRoute);
 
 module.exports = app;
