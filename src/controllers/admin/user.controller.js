@@ -37,6 +37,8 @@ const addUser = async (req, res) => {
         return error422("User Name is required.", res);
     } else if (!password) {
         return error422("Password is required.", res);
+    } else if (!email_id) {
+        return error422("Email Id required.", res);
     }
 
     //check User Name already is exists or not
@@ -44,6 +46,13 @@ const addUser = async (req, res) => {
     const isExistUserNameResult = await pool.query(isExistUserNameQuery, [user_name.toLowerCase()]);
     if (isExistUserNameResult[0].length > 0) {
         return error422(" User Name is already exists.", res);
+    }
+
+    //check Email Id already is exists or not
+    const isExistEmailIdQuery = `SELECT * FROM users WHERE email_id= ?`;
+    const isExistEmailIdResult = await pool.query(isExistEmailIdQuery, [email_id]);
+    if (isExistEmailIdResult[0].length > 0) {
+        return error422("Email Id is already exists.", res);
     }
 
     // Check if designation exists

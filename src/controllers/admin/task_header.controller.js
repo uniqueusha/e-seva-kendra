@@ -45,7 +45,7 @@ const addtaskHeader = async (req, res) => {
         return error422("User ID is required.", res);
     }  else if (!work_details_id) {
         return error422("work_details is required.", res);
-    }
+    }  
 
     //check Customer already is exists or not
     const isExistCustomerQuery = `SELECT * FROM task_header WHERE LOWER(TRIM(customer_name))= ? && user_id =?`;
@@ -123,8 +123,34 @@ const getTaskHeaders = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT * FROM task_header WHERE user_id = ${user_id}`;
-        let countQuery = `SELECT COUNT(*) AS total FROM task_header WHERE user_id = ${user_id}`;
+        let getTaskHeaderQuery = `SELECT th.*,
+        u.user_name,
+        s.service_id,
+        s.services,
+        w.work_details_id,
+        w.work_details,
+        d.document_type_id,
+        d.document_type
+        FROM task_header th
+        JOIN users u
+        ON th.user_id = u.user_id
+        JOIN services s
+        ON s.user_id = u.user_id
+        JOIN work_details w
+        ON w.user_id = u.user_id
+        JOIN document_type d
+        ON d.user_id = u.user_id
+        WHERE u.user_id = ${user_id}`;
+        let countQuery = `SELECT COUNT(*) AS total FROM task_header th
+        JOIN users u
+        ON th.user_id = u.user_id
+        JOIN services s
+        ON s.user_id = u.user_id
+        JOIN work_details w
+        ON w.user_id = u.user_id
+        JOIN document_type d
+        ON d.user_id = u.user_id
+        WHERE u.user_id = ${user_id}`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -187,7 +213,24 @@ const getTaskHeader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? && user_id = ?`;
+        const taskHeaderQuery = `SELECT th.*,
+        u.user_name,
+        s.service_id,
+        s.services,
+        w.work_details_id,
+        w.work_details,
+        d.document_type_id,
+        d.document_type
+        FROM task_header th
+        JOIN users u
+        ON th.user_id = u.user_id
+        JOIN services s
+        ON s.user_id = u.user_id
+        JOIN work_details w
+        ON w.user_id = u.user_id
+        JOIN document_type d
+        ON d.user_id = u.user_id
+        WHERE th.task_header_id = ? && u.user_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId, user_id]);
         if (taskHeaderResult[0].length == 0) {
              return error422("Task Header Not Found.", res);
@@ -283,7 +326,7 @@ const updateTaskheader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        // Update Priority details
+        // Update Task Heater
         const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, document_type_id = ?,assigned_to = ?, due_date = ?, payment_status = ?, user_id = ? WHERE task_header_id = ?`;
         await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id, taskHeaderId]);
 
@@ -305,7 +348,7 @@ const updateTaskheader = async (req, res) => {
 const getTaskAssignedTo = async (req, res) => {
     const assignedTo = parseInt(req.query.assignedTo);
     const user_id = req.companyData.user_id;
-    // return res.json(user_id)
+   
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -334,7 +377,7 @@ const getTaskAssignedTo = async (req, res) => {
 
 //Report
 const getReport = async (req, res) => {
-    const { page, perPage, fromDate, toDate } = req.query;
+    const { page, perPage, fromDate, toDate, user_id, status_id, service_id} = req.query;
  
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -342,25 +385,45 @@ const getReport = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getReportQuery = `SELECT u.user_name,st.status_name,s.services FROM users u
-        JOIN status st
-        ON st.user_id = u.user_id
-        JOIN services s
-        ON s.user_id = u.user_id
-        `;
-    
+        let getReportQuery = `SELECT t.created_at, u.user_name, st.status_name, s.services FROM users u 
+        JOIN status st 
+        ON st.user_id = u.user_id 
+        JOIN services s 
+        ON s.user_id = u.user_id 
+        JOIN task_header t 
+        ON t.user_id = u.user_id 
+        WHERE 1`;
+        
+        
         let countQuery = `SELECT COUNT(*) AS total FROM users u
-        JOIN status st
-        ON st.user_id = u.user_id
-        JOIN services s
-        ON s.user_id = u.user_id
-        `;
+         JOIN status st 
+        ON st.user_id = u.user_id 
+        JOIN services s 
+        ON s.user_id = u.user_id 
+        JOIN task_header t 
+        ON t.user_id = u.user_id
+        WHERE 1`;
 
         // from date and to date
         if (fromDate && toDate) {
-            getReportQuery += ` WHERE u.created_at >= '${fromDate}' AND u.created_at <= '${toDate}'`;
-            countQuery += ` WHERE u.created_at >= '${fromDate}' AND u.created_at <= '${toDate}'`;
+            getReportQuery += ` AND t.created_at >= '${fromDate}' AND t.created_at <= '${toDate}'`;
+            countQuery += ` AND t.created_at >= '${fromDate}' AND t.created_at <= '${toDate}'`;
         }
+        if (user_id) {
+            getReportQuery += ` AND u.user_id = '${user_id}'`;
+            countQuery += ` AND u.user_id = '${user_id}'`;
+        }
+
+        if (status_id) {
+            getReportQuery += ` AND st.status_id = '${status_id}'`;
+            countQuery += ` AND st.status_id = '${status_id}'`;
+        }
+
+        if (service_id) {
+            getReportQuery += ` AND s.service_id = '${service_id}'`;
+            countQuery += ` AND s.service_id = '${service_id}'`;
+        }
+       
         
         // getReportQuery += " ORDER BY u.created_at DESC";
         // Apply pagination if both page and perPage are provided
@@ -392,7 +455,7 @@ const getReport = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
-        console.log(error);
+        
         
         return error500(error, res);
     } finally {

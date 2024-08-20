@@ -138,11 +138,9 @@ const getWorkDetail= async (req, res) => {
         });
 } catch (error) {
     error500(error, res);
-} finally {
-    if (connection) {
-        connection.releaseConnection();
-    }
-  }
+}  finally {
+    await connection.release();
+}
 };
 
 //update Work Detail...
@@ -251,7 +249,6 @@ const getWorkDetailsWma = async (req, res, next) => {
         let workDetailsQuery = `SELECT * FROM work_details WHERE status = 1`; 
         const workDetailsResult = await connection.query(workDetailsQuery);
         const workDetails = workDetailsResult[0];
-  
         res.status(200).json({
             status: 200,
             message: "Work Details retrieved successfully.",
@@ -259,10 +256,8 @@ const getWorkDetailsWma = async (req, res, next) => {
       });
     } catch (error) {
         error500(error, res);
-    } finally {
-        if (connection) {
-            connection.releaseConnection();
-      }
+    }  finally {
+        await connection.release();
     }
 };
 module.exports = {

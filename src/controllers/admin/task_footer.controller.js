@@ -25,9 +25,55 @@ error500 = (error, res) => {
     });
 }
 
-//Get Task Headers List...
-const getTaskHeaders = async (req, res) => {
-    const { page, perPage, key } = req.query;
+
+//add Task Footer..
+const addtaskFooter = async (req, res) => {
+    const  task_header_id  = req.body.task_header_id  ? req.body.task_header_id : '';
+    const  status_id  = req.body.status_id  ? req.body.status_id : '';
+    const  note  = req.body.note  ? req.body.note.trim() : '';
+
+    const user_id  = req.companyData.user_id ;
+    
+        //check task header is exists or not
+        const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? && user_id =?`;
+        const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id, user_id]);
+        if (isExistTaskHeaderResult[0].length === 0) {
+            return error422("Task Header Not Found.", res);
+        }
+
+        //check status is exists or not
+        const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ? && user_id =?`;
+        const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id, user_id]);
+        if (isExistStatusResult[0].length === 0) {
+            return error422("Status Not Found.", res);
+        }
+
+        // Attempt to obtain a database connection
+        let connection = await getConnection();
+        try {
+             //Start the transaction
+             await connection.beginTransaction();
+            //insert into Task Footer
+            const insertTaskFooterQuery = `INSERT INTO task_footers (task_header_id, status_id, note, user_id) VALUES (?, ?, ?, ?)`;
+            const insertTaskFooterValues = [task_header_id, status_id, note, user_id];
+            const taskFooterResult = await connection.query(insertTaskFooterQuery, insertTaskFooterValues);
+           
+            //commit the transation
+            await connection.commit();
+            res.status(200).json({
+                status: 200,
+                message: "Task Footer added successfully",
+            });
+        } catch (error) {
+            return error500(error, res);
+        } finally {
+            await connection.release();
+        }
+    };
+
+// Get All Task Footer....
+const getTaskFooters = async (req, res) => {
+    const { page, perPage } = req.query;
     const user_id  = req.companyData.user_id ;
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -35,22 +81,10 @@ const getTaskHeaders = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT * FROM task_header WHERE user_id = ${user_id}`;
-        let countQuery = `SELECT COUNT(*) AS total FROM task_header WHERE user_id = ${user_id}`;
+        let getTaskFootersQuery = `SELECT *FROM task_footers WHERE user_id = ${user_id}`;
+        let countQuery = `SELECT COUNT(*) AS total FROM task_footers WHERE user_id = ${user_id}`;
 
-        if (key) {
-            const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getTaskHeaderQuery += ` AND e.status = 1`;
-                countQuery += ` AND e.status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getTaskHeaderQuery += ` AND e.status = 0`;
-                countQuery += ` AND e.status = 0`;
-            } else {
-                getTaskHeaderQuery += ` AND  LOWER(customer_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(customer_name) LIKE '%${lowercaseKey}%' `;
-            }
-        }
+        
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -58,15 +92,15 @@ const getTaskHeaders = async (req, res) => {
             total = parseInt(totalResult[0][0].total);
 
             const start = (page - 1) * perPage;
-            getTaskHeaderQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+            getTaskFootersQuery += ` LIMIT ${perPage} OFFSET ${start}`;
         }
-        const result = await connection.query(getTaskHeaderQuery);
-        const tasKHeader = result[0];
+        const result = await connection.query(getTaskFootersQuery);
+        const TaskFooters = result[0];
 
         const data = {
             status: 200,
-            message: "TasK Header retrieved successfully",
-            data: tasKHeader,
+            message: "TasK Footers retrieved successfully",
+            data: TaskFooters,
         };
         // Add pagination information if provided
         if (page && perPage) {
@@ -85,3 +119,63 @@ const getTaskHeaders = async (req, res) => {
         await connection.release();
     }
 };
+
+ 
+// Update Task Footer
+    const updatetaskFooter = async (req, res) => {
+        const taskFooterId = parseInt(req.params.id);
+        const  task_header_id  = req.body.task_header_id  ? req.body.task_header_id : '';
+        const  status_id  = req.body.status_id  ? req.body.status_id : '';
+        const  note  = req.body.note  ? req.body.note.trim() : '';
+    
+        const user_id  = req.companyData.user_id ;
+        
+             //check task footer is exists or not
+            const isExistTaskFooterQuery = `SELECT * FROM task_footers WHERE task_footer_id = ? && user_id =?`;
+            const isExistTaskFooterResult = await pool.query(isExistTaskFooterQuery, [taskFooterId, user_id]);
+            if (isExistTaskFooterResult[0].length === 0) {
+                return error422("Task Footer Not Found.", res);
+            }
+            //check task header is exists or not
+            const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? && user_id =?`;
+            const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id, user_id]);
+            if (isExistTaskHeaderResult[0].length === 0) {
+                return error422("Task Header Not Found.", res);
+            }
+    
+            //check status is exists or not
+            const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ? && user_id =?`;
+            const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id, user_id]);
+            if (isExistStatusResult[0].length === 0) {
+                return error422("Status Not Found.", res);
+            }
+
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // Update Task Footer
+        const updateQuery = `UPDATE task_footers SET task_header_id = ?,status_id = ?, note = ?, user_id = ? WHERE task_footer_id = ?`;
+        await connection.query(updateQuery, [task_header_id,status_id,note,user_id, taskFooterId]);
+
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: "Task Footer updated successfully.",
+        });
+    } catch (error) {
+        await connection.rollback();
+        return error500(error, res);
+    } finally {
+        await connection.release();
+    }
+};
+module.exports = {
+    addtaskFooter,
+    updatetaskFooter,
+    getTaskFooters
+}
