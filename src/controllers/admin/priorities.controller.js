@@ -155,7 +155,7 @@ const getpriority = async (req, res) => {
     error500(error, res);
 } finally {
     if (connection) {
-        connection.releaseConnection();
+        connection.release();
     }
   }
 };
@@ -266,8 +266,8 @@ const onStatusChange = async (req, res) => {
 };
 
 //get active Priorities ...
-const getPrioritiesWma = async (req, res, next) => {
-    const user_id  = req.companyData.user_id ;
+const getPrioritiesWma = async (req, res) => {
+    
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -275,8 +275,8 @@ const getPrioritiesWma = async (req, res, next) => {
         // Start a transaction
         await connection.beginTransaction();
         // Start a transaction
-        let prioritiesQuery = `SELECT * FROM priorities WHERE status = 1 && user_id`; 
-        const prioritiesResult = await connection.query(prioritiesQuery, [user_id]);
+        let prioritiesQuery = `SELECT * FROM priorities WHERE status = 1 ORDER BY priority_name`; 
+        const prioritiesResult = await connection.query(prioritiesQuery);
         const priorities = prioritiesResult[0];
   
         res.status(200).json({
@@ -288,7 +288,7 @@ const getPrioritiesWma = async (req, res, next) => {
         error500(error, res);
     } finally {
         if (connection) {
-            connection.releaseConnection();
+            connection.release();
       }
     }
 };

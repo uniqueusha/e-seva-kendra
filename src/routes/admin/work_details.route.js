@@ -5,7 +5,7 @@ const checkAuth = require("../../middleware/check.auth");
 
 router.post('/',checkAuth,workDetailController.addWorkDetails);
 router.get('/',checkAuth,workDetailController.getWorkDetails);
-router.get('/wma',checkAuth,workDetailController.getWorkDetailsWma);
+router.get('/wma',workDetailController.getWorkDetailsWma);
 router.get('/:id',checkAuth,workDetailController.getWorkDetail);
 router.put('/:id',checkAuth,workDetailController.updateWorkDetail);
 router.patch('/:id',checkAuth,workDetailController.onStatusChange)

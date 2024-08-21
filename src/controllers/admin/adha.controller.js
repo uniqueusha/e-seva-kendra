@@ -28,14 +28,14 @@ error500 = (error, res) => {
 
 // add adha...
 const addAdha = async (req, res) => {
-    const  name  = req.body.name  ? req.body.name.trim()  : '';
-    const  mobile_number  = req.body.mobile_number  ? req.body.mobile_number.trim()  : '';
-    const  enrollment_number  = req.body.enrollment_number  ? req.body.enrollment_number.trim()  : '';
+    const  name = req.body.name  ? req.body.name.trim(): '';
+    const  mobile_number  = req.body.mobile_number  ? req.body.mobile_number : '';
+    const  enrollment_number  = req.body.enrollment_number  ? req.body.enrollment_number : '';
     const  enollment_time  = req.body.enollment_time  ? req.body.enollment_time  : '';
     const  service_id  = req.body.service_id  ? req.body.service_id : '';
     const  document_type_id  = req.body.document_type_id  ? req.body.document_type_id : '';
-    const  verification_status  = req.body.verification_status  ? req.body.verification_status.trim()  : '';
-    const  payment_mode  = req.body.payment_mode  ? req.body.payment_mode.trim()  : '';
+    const  verification_status  = req.body.verification_status  ? req.body.verification_status  : '';
+    const  payment_mode  = req.body.payment_mode  ? req.body.payment_mode : '';
     const  amount  = req.body.amount  ? req.body.amount  : '';
     const user_id  =req.companyData.user_id;
 
@@ -223,7 +223,7 @@ const getAdha = async (req, res) => {
 //adha  update...
 const updateAdha = async (req, res) => {
     const adhaId = parseInt(req.params.id);
-    const name = req.body.name ? req.body.name : '';
+    const  name  = req.body.name  ? req.body.name.trim() : '';
     const mobile_number = req.body.mobile_number ? req.body.mobile_number : '';
     const enrollment_number = req.body.enrollment_number ? req.body.enrollment_number : '';
     const enollment_time = req.body.enollment_time ? req.body.enollment_time : '';

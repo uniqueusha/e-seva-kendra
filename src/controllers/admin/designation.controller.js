@@ -186,7 +186,7 @@ const getDesignation = async (req, res) => {
 //designation  update...
 const updateDesignation = async (req, res) => {
     const designationId = parseInt(req.params.id);
-    const designation_name = req.body.designation_name ? req.body.designation_name : '';
+    const  designation_name  = req.body.designation_name  ? req.body.designation_name.trim()  : '';
     const user_id = req.companyData.user_id;
 
     if (!designation_name) {
@@ -299,16 +299,8 @@ const onStatusChange = async (req, res) => {
 
 //get designation active...
 const getDesignationWma = async (req, res) => {
-    const user_id = req.companyData.user_id;
 
-    const checkUserQuery = `SELECT * FROM users WHERE user_id = ${user_id}  `;
-    const userResult = await pool.query(checkUserQuery);
-    
-
-    let designationQuery = `SELECT d.*  FROM designations d 
-    LEFT JOIN users u 
-    ON u.user_id = d.user_id 
-    WHERE d.status = 1  ORDER BY d.designation_name`;
+    let designationQuery = `SELECT * from designations WHERE status = 1  ORDER BY designation_name`;
     
     // attempt to obtain a database connection
     let connection = await getConnection();

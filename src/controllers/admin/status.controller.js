@@ -87,8 +87,8 @@ const getStatus = async (req, res) => {
                 getStatusQuery += ` AND status = 0`;
                 countQuery += ` AND status = 0`;
             } else {
-                getStatusQuery += ` AND  LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
+                getStatusQuery += ` AND  LOWER(status_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND LOWER(staus_name) LIKE '%${lowercaseKey}%' `;
             }
         }
         getStatusQuery += " ORDER BY created_at DESC";
@@ -154,7 +154,7 @@ const getStatusById = async (req, res) => {
     error500(error, res);
 } finally {
     if (connection) {
-        connection.releaseConnection();
+        connection.release();
     }
   }
 };
@@ -184,13 +184,6 @@ const updateStatus = async (req, res) => {
         if (statusResult[0].length == 0) {
             return error422("Status Not Found.", res);
         }
-
-        // // check if Status Name exists
-        // const isStatusNameExistsQuery = "SELECT * FROM status WHERE status_name = ? AND status_id = ? AND user_id = ?";
-        // const isStatusNameExistsResult = await connection.query(isStatusNameExistsQuery, [status_name, statusId, user_id]);
-        // if (isStatusNameExistsResult[0].length == 0) {
-        //     return error422("Status Name is already exists .", res);
-        // }
 
         //update Status details
         const updateQuery = `UPDATE status SET status_name = ?, user_id = ? WHERE status_id = ?`;
@@ -264,8 +257,7 @@ const onStatusChange = async (req, res) => {
 };
 
 //get active status ...
-const getStatusWma = async (req, res, next) => {
-    const user_id  = req.companyData.user_id ;
+const getStatusWma = async (req, res) => {
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -273,8 +265,8 @@ const getStatusWma = async (req, res, next) => {
         // Start a transaction
         await connection.beginTransaction();
         // Start a transaction
-        let statusQuery = `SELECT * FROM status WHERE status = 1 && user_id`; 
-        const statusResult = await connection.query(statusQuery, [user_id]);
+        let statusQuery = `SELECT * FROM status WHERE status = 1 ORDER BY status_name`; 
+        const statusResult = await connection.query(statusQuery);
         const status = statusResult[0];
   
         res.status(200).json({
@@ -286,7 +278,7 @@ const getStatusWma = async (req, res, next) => {
         error500(error, res);
     } finally {
         if (connection) {
-            connection.releaseConnection();
+            connection.release();
       }
     }
 };
