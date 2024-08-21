@@ -63,8 +63,14 @@ const getWorkDetails = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getWorkDetailsQuery = `SELECT * FROM work_details WHERE user_id = ${user_id}`;
-        let countQuery = `SELECT COUNT(*) AS total FROM work_details WHERE user_id = ${user_id}`;
+        let getWorkDetailsQuery = `SELECT wd.*,u.user_name FROM work_details wd
+        JOIN users u
+        ON u.user_id = wd.user_id
+        WHERE wd.user_id = ${user_id}`;
+        let countQuery = `SELECT COUNT(*) AS total FROM work_details wd
+        JOIN users u
+        ON u.user_id = wd.user_id
+        WHERE wd.user_id = ${user_id}`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -125,7 +131,10 @@ const getWorkDetail= async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const workDetailQuery = `SELECT * FROM work_details WHERE work_details_id = ? && user_id = ?`;
+        const workDetailQuery = `SELECT wd.*,u.user_name FROM work_details wd
+        JOIN users u
+        ON u.user_id = wd.user_id
+        WHERE wd.work_details_id = ? && wd.user_id = ?`;
         const workDetailResult = await connection.query(workDetailQuery, [workDetailId, user_id]);
         if (workDetailResult[0].length == 0) {
              return error422("Work Detail Not Found.", res);
@@ -237,7 +246,7 @@ const onStatusChange = async (req, res) => {
     }
 };
 //get Work Details active...
-const getWorkDetailsWma = async (req, res, next) => {
+const getWorkDetailsWma = async (req, res) => {
     
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -246,7 +255,10 @@ const getWorkDetailsWma = async (req, res, next) => {
         // Start a transaction
         await connection.beginTransaction();
         // Start a transaction
-        let workDetailsQuery = `SELECT * FROM work_details WHERE status = 1`; 
+        let workDetailsQuery = `SELECT wd.*,u.user_name FROM work_details wd
+        JOIN users u
+        ON u.user_id = wd.user_id
+        WHERE wd.status = 1 ORDER BY work_details`; 
         const workDetailsResult = await connection.query(workDetailsQuery);
         const workDetails = workDetailsResult[0];
         res.status(200).json({

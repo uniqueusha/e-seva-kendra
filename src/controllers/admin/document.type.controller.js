@@ -28,7 +28,7 @@ error500 = (error, res) => {
 
 // add document_type...
 const addDocumentType = async (req, res) => {
-    const  document_type  = req.body.document_type  ? req.body.document_type.trim()  : '';
+    const document_type = req.body.document_type  ? req.body.document_type.trim()  : '';
     const user_id  =req.companyData.user_id;
 
     if (!document_type) {
@@ -187,7 +187,7 @@ const getDocumentType = async (req, res) => {
 //document type  update...
 const updateDocumentType = async (req, res) => {
     const documentTypeId = parseInt(req.params.id);
-    const document_type = req.body.document_type ? req.body.document_type : '';
+    const document_type = req.body.document_type  ? req.body.document_type.trim()  : '';
     const user_id = req.companyData.user_id;
 
     if (!document_type) {
@@ -300,10 +300,6 @@ const onStatusChange = async (req, res) => {
 
 //get document type active...
 const getDocumentTypeWma = async (req, res) => {
-    const user_id = req.companyData.user_id;
-
-    const checkUserQuery = `SELECT * FROM users WHERE user_id = ${user_id}  `;
-    const userResult = await pool.query(checkUserQuery);
     
 
     let documenttypeQuery = `SELECT dt.*  FROM document_type dt 

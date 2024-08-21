@@ -135,9 +135,11 @@ const userLogin = async (req, res) => {
             "secret_this_should_be", // Use environment variable for secret key
             { expiresIn: "10h" }
         );
-        const userDataQuery = `SELECT u.*, c.contrasena_id FROM  users u 
+        const userDataQuery = `SELECT u.*, c.contrasena_id, d.designation_name FROM  users u 
         LEFT JOIN contrasena c
-        ON c.user_id =u.user_id 
+        ON c.user_id =u.user_id
+        LEFT JOIN designations d
+        ON d.user_id = u.user_id 
         WHERE u.user_id = ? `;
         let userDataResult = await connection.query(userDataQuery, [check_user.user_id]);
 
@@ -170,8 +172,13 @@ const getUsers = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getUserQuery = `SELECT * FROM users`;
-        let countQuery = `SELECT COUNT(*) AS total FROM users`;
+        let getUserQuery = `SELECT u.*, d.designation_name FROM users u 
+        LEFT JOIN designations d 
+        ON d.designation_id = u.designation_id`;
+
+        let countQuery = `SELECT COUNT(*) AS total FROM users u
+        LEFT JOIN designations d 
+        ON d.designation_id = u.designation_id`;
 
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -233,7 +240,10 @@ try {
     // Start a transaction
     await connection.beginTransaction();
 
-    const userQuery = `SELECT * FROM users WHERE user_id = ?`;
+    const userQuery = `SELECT u.*,designation_name FROM users u
+    JOIN designations d
+    ON d.user_id = u.user_id
+    WHERE u.user_id = ?`;
     const userResult = await connection.query(userQuery, [userId]);
     if (userResult[0].length == 0) {
         return error422("User Not Found.", res);
@@ -245,12 +255,10 @@ try {
         data: user,
     });
 } catch (error) {
-    console.log(error);
-    
     error500(error, res);
 } finally {
     if (connection) {
-      connection.releaseConnection();
+      connection.release();
     }
   }
 };
@@ -379,7 +387,10 @@ const getUserWma = async (req, res, next) => {
         // Start a transaction
         await connection.beginTransaction();
         // Start a transaction
-        let userQuery = `SELECT * FROM users WHERE status = 1`; 
+        let userQuery = `SELECT u.*,d.designation_name FROM users u
+        JOIN designations d
+        ON d.designation_id = u.designation_id
+        WHERE u.status = 1 ORDER BY u.user_name `; 
         const userResult = await connection.query(userQuery);
         const user = userResult[0];
   
@@ -392,7 +403,7 @@ const getUserWma = async (req, res, next) => {
         error500(error, res);
     } finally {
         if (connection) {
-            connection.releaseConnection();
+            connection.release();
       }
     }
 };

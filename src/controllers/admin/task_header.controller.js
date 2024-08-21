@@ -47,13 +47,6 @@ const addtaskHeader = async (req, res) => {
         return error422("work_details is required.", res);
     }  
 
-    //check Customer already is exists or not
-    const isExistCustomerQuery = `SELECT * FROM task_header WHERE LOWER(TRIM(customer_name))= ? && user_id =?`;
-    const isExistCustomerResult = await pool.query(isExistCustomerQuery, [ customer_name.toLowerCase(), user_id]);
-    if (isExistCustomerResult[0].length > 0) {
-        return error422(" Customer Name is already exists.", res);
-    } 
-
      //check Mobile Number already is exists or not
      const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ? && user_id =?`;
      const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number, user_id]);
@@ -123,33 +116,25 @@ const getTaskHeaders = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT th.*,
-        u.user_name,
-        s.service_id,
-        s.services,
-        w.work_details_id,
-        w.work_details,
-        d.document_type_id,
-        d.document_type
-        FROM task_header th
-        JOIN users u
-        ON th.user_id = u.user_id
+        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,d.document_type,u.user_name FROM task_header th
         JOIN services s
-        ON s.user_id = u.user_id
-        JOIN work_details w
-        ON w.user_id = u.user_id
+        ON s.service_id = th.service_id
+        JOIN work_details wd
+        ON wd.work_details_id = th.work_details_id
         JOIN document_type d
-        ON d.user_id = u.user_id
+        ON d.document_type_id = th.document_type_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
         WHERE u.user_id = ${user_id}`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
-        JOIN users u
-        ON th.user_id = u.user_id
         JOIN services s
-        ON s.user_id = u.user_id
-        JOIN work_details w
-        ON w.user_id = u.user_id
+        ON s.service_id = th.service_id
+        JOIN work_details wd
+        ON wd.work_details_id = th.work_details_id
         JOIN document_type d
-        ON d.user_id = u.user_id
+        ON d.document_type_id = th.document_type_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
         WHERE u.user_id = ${user_id}`;
 
         if (key) {
@@ -213,23 +198,15 @@ const getTaskHeader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT th.*,
-        u.user_name,
-        s.service_id,
-        s.services,
-        w.work_details_id,
-        w.work_details,
-        d.document_type_id,
-        d.document_type
-        FROM task_header th
-        JOIN users u
-        ON th.user_id = u.user_id
+        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,d.document_type,u.user_name FROM task_header th
         JOIN services s
-        ON s.user_id = u.user_id
-        JOIN work_details w
-        ON w.user_id = u.user_id
+        ON s.service_id = th.service_id
+        JOIN work_details wd
+        ON wd.work_details_id = th.work_details_id
         JOIN document_type d
-        ON d.user_id = u.user_id
+        ON d.document_type_id = th.document_type_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
         WHERE th.task_header_id = ? && u.user_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId, user_id]);
         if (taskHeaderResult[0].length == 0) {
@@ -275,13 +252,6 @@ const updateTaskheader = async (req, res) => {
     const taskHeaderResult = await pool.query(taskHeaderQuery, [taskHeaderId, user_id]);
     if (taskHeaderResult[0].length === 0) {
         return error422("Task Header Not Found.", res);
-    }
-
-    // Check if the Customer Name already exists for a different priority under the same user
-    const isCustomerNameExistsQuery = "SELECT * FROM task_header WHERE customer_name = ? AND task_header_id != ? AND user_id = ?";
-    const isCustomerNameExistsResult = await pool.query(isCustomerNameExistsQuery, [customer_name, taskHeaderId, user_id]);
-    if (isCustomerNameExistsResult[0].length > 0) {
-        return error422("Customer Name already exists.", res);
     }
     
     //check Mobile Number already is exists or not
@@ -377,7 +347,7 @@ const getTaskAssignedTo = async (req, res) => {
 
 //Report
 const getReport = async (req, res) => {
-    const { page, perPage, fromDate, toDate, user_id, status_id, service_id} = req.query;
+    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id} = req.query;
  
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -385,47 +355,37 @@ const getReport = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getReportQuery = `SELECT t.created_at, u.user_name, st.status_name, s.services FROM users u 
-        JOIN status st 
-        ON st.user_id = u.user_id 
-        JOIN services s 
-        ON s.user_id = u.user_id 
-        JOIN task_header t 
-        ON t.user_id = u.user_id 
+        let getReportQuery = `SELECT th.*,tf.status_id FROM task_header th
+        JOIN task_footers tf
+        ON th.task_header_id = tf.task_header_id
         WHERE 1`;
         
         
-        let countQuery = `SELECT COUNT(*) AS total FROM users u
-         JOIN status st 
-        ON st.user_id = u.user_id 
-        JOIN services s 
-        ON s.user_id = u.user_id 
-        JOIN task_header t 
-        ON t.user_id = u.user_id
+        let countQuery = `SELECT COUNT(*) AS total FROM task_header th
+        JOIN task_footers tf
+        ON th.task_header_id = tf.task_header_id
         WHERE 1`;
 
         // from date and to date
         if (fromDate && toDate) {
-            getReportQuery += ` AND t.created_at >= '${fromDate}' AND t.created_at <= '${toDate}'`;
-            countQuery += ` AND t.created_at >= '${fromDate}' AND t.created_at <= '${toDate}'`;
+            getReportQuery += ` AND th.created_at >= '${fromDate}' AND th.created_at <= '${toDate}'`;
+            countQuery += ` AND th.created_at >= '${fromDate}' AND th.created_at <= '${toDate}'`;
         }
-        if (user_id) {
-            getReportQuery += ` AND u.user_id = '${user_id}'`;
-            countQuery += ` AND u.user_id = '${user_id}'`;
+        if (assigned_to) {
+            getReportQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            countQuery += ` AND th.assigned_to = '${assigned_to}'`;
         }
 
         if (status_id) {
-            getReportQuery += ` AND st.status_id = '${status_id}'`;
-            countQuery += ` AND st.status_id = '${status_id}'`;
+            getReportQuery += ` AND tf.status_id = '${status_id}'`;
+            countQuery += ` AND tf.status_id = '${status_id}'`;
         }
 
         if (service_id) {
-            getReportQuery += ` AND s.service_id = '${service_id}'`;
-            countQuery += ` AND s.service_id = '${service_id}'`;
+            getReportQuery += ` AND th.service_id = '${service_id}'`;
+            countQuery += ` AND th.service_id = '${service_id}'`;
         }
-       
-        
-        // getReportQuery += " ORDER BY u.created_at DESC";
+    
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {

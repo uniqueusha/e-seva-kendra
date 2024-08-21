@@ -27,12 +27,12 @@ error500 = (error, res) => {
 //Add User Role
 const addUserRole = async (req, res) => {
     const user_id = req.body.user_id ? req.body.user_id : '';
-    const role_id = req.body.role_id ? req.body.role_id : '';
+    const designation_id = req.body.designation_id ? req.body.designation_id : '';
    
-    if (!role_id) {
-        return error422("Role Id is required.", res);
-    } else if (!user_id) {
-        return error422("User ID is required.", res);
+    if (!user_id) {
+        return error422("User Id is required.", res);
+    } else if (!designation_id) {
+        return error422("Designation ID is required.", res);
     }
 
     // Check if the user exists
@@ -43,13 +43,12 @@ const addUserRole = async (req, res) => {
         return error422("User not found.", res);
     }
 
-    // Check if the role exists
-    const isExistRoleQuery = `SELECT * FROM roles WHERE role_id = ?`;
-    const isExistRoleResult = await pool.query(isExistRoleQuery, [role_id]);
+    // Check if the designation exists
+    const isExistDesignationQuery = `SELECT * FROM designations WHERE designation_id = ?`;
+    const isExistDesignationResult = await pool.query(isExistDesignationQuery, [designation_id]);
 
-    if (isExistRoleResult[0].length === 0) {
-        // If no role is found, return an error
-        return error422("Role not found.", res);
+    if (isExistDesignationResult[0].length === 0) {
+        return error422("Designation not found.", res);
     }
 
     // Attempt to obtain a database connection
@@ -59,8 +58,8 @@ const addUserRole = async (req, res) => {
         await connection.beginTransaction();
 
         // Insert into User Role
-        const insertUserRoleQuery = `INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`;
-        const insertUserRoleValues = [user_id, role_id];
+        const insertUserRoleQuery = `INSERT INTO user_roles (user_id, designation_id) VALUES (?, ?)`;
+        const insertUserRoleValues = [user_id, designation_id];
         await connection.query(insertUserRoleQuery, insertUserRoleValues);
 
         // Commit the transaction
@@ -89,17 +88,17 @@ const getUserRoles = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getUserRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_id,r.role_name,ur.created_at FROM user_roles ur
+        let getUserRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,d.designation_id,d.designation_name,ur.created_at FROM user_roles ur
         JOIN users u
         ON u.user_id = ur.user_id
-        JOIN roles r
-        ON r.user_id = u.user_id
+        JOIN designations d
+        ON d.user_id = u.user_id
         WHERE 1`;
         let countQuery = `SELECT COUNT(*) AS total FROM user_roles ur
         JOIN users u
         ON u.user_id = ur.user_id
-        JOIN roles r
-        ON r.user_id = u.user_id
+        JOIN designations d
+        ON d.user_id = u.user_id
         WHERE 1`;
 
         if (key) {
@@ -161,12 +160,12 @@ const getUserRole = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const userRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,r.role_id,r.role_name,ur.created_at FROM user_roles ur
+        const userRoleQuery = `SELECT ur.user_role_id,u.user_id,u.user_name,d.designation_id,d.designation_name,ur.created_at FROM user_roles ur
         JOIN users u
         ON u.user_id = ur.user_id
-        JOIN roles r
-        ON r.user_id = u.user_id
-        WHERE user_role_id = ?`;
+        JOIN designations d
+        ON d.user_id = u.user_id
+        WHERE ur.user_role_id = ?`;
         const userRoleResult = await connection.query(userRoleQuery, [userRoleId]);
         if (userRoleResult[0].length == 0) {
              return error422("User Role Not Found.", res);
@@ -188,14 +187,14 @@ const getUserRole = async (req, res) => {
 const updateUserRole = async (req, res) => {
     const userRoleId = parseInt(req.params.id);
     const user_id = req.body.user_id ? req.body.user_id : '';
-    const role_id = req.body.role_id ? req.body.role_id : '';
+    const designation_id = req.body.designation_id ? req.body.designation_id : '';
 
     if (!userRoleId) {
         return error422("User Role is required.", res);
     } else if (!user_id) {
         return error422("User ID is required.", res);
-    } else if (!role_id) {
-        return error422("Role ID is required.", res);
+    } else if (!designation_id) {
+        return error422("Designation ID is required.", res);
     } 
 
     // Check if  role exists
@@ -206,10 +205,10 @@ const updateUserRole = async (req, res) => {
     }
 
     // Check if  role exists
-    const roleQuery = "SELECT * FROM roles WHERE role_id = ?";
-    const roleResult = await pool.query(roleQuery, [role_id]);
-    if (roleResult[0].length === 0) {
-        return error422("Role Not Found.", res);
+    const designationQuery = "SELECT * FROM designations WHERE designation_id = ?";
+    const designationResult = await pool.query(designationQuery, [designation_id]);
+    if (designationResult[0].length === 0) {
+        return error422("Designation Not Found.", res);
     }
 
     // Check if user role exists
@@ -228,8 +227,8 @@ const updateUserRole = async (req, res) => {
         await connection.beginTransaction();
 
         // Update user role details
-        const updateQuery = `UPDATE user_roles SET user_id = ?,role_id = ? WHERE user_role_id = ?`;
-        await connection.query(updateQuery, [user_id,role_id,userRoleId]);
+        const updateQuery = `UPDATE user_roles SET user_id = ?,designation_id = ? WHERE user_role_id = ?`;
+        await connection.query(updateQuery, [user_id,designation_id,userRoleId]);
 
         // Commit the transaction
         await connection.commit();

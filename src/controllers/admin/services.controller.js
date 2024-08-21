@@ -160,10 +160,10 @@ const getService = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        const serviceQuery = `SELECT s.* FROM services s
+        const serviceQuery = `SELECT s.*,u.user_name FROM services s
         LEFT JOIN users u
-        ON s.user_id=u.user_id
-         WHERE s.service_id=? AND s.user_id=?`;
+        ON s.user_id = u.user_id
+        WHERE s.service_id = ? AND s.user_id = ?`;
         const serviceResult = await connection.query(serviceQuery, [serviceId,user_id]);
         
         if (serviceResult[0].length == 0) {
@@ -186,7 +186,7 @@ const getService = async (req, res) => {
 //service  update...
 const updateService = async (req, res) => {
     const serviceId = parseInt(req.params.id);
-    const services = req.body.services ? req.body.services : '';
+    const services  = req.body.services ? req.body.services.trim() : '';
     const user_id = req.companyData.user_id;
 
     if (!services) {
@@ -298,13 +298,8 @@ const onStatusChange = async (req, res) => {
 
 //get service active...
 const getServiceWma = async (req, res) => {
-    const user_id = req.companyData.user_id;
 
-    const checkUserQuery = `SELECT * FROM users WHERE user_id = ${user_id}  `;
-    const userResult = await pool.query(checkUserQuery);
-    
-
-    let serviceQuery = `SELECT s.*  FROM services s 
+    let serviceQuery = `SELECT s.*,u.user_name FROM services s 
     LEFT JOIN users u 
     ON u.user_id = s.user_id 
     WHERE s.status = 1  ORDER BY s.services`;
