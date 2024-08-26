@@ -230,8 +230,14 @@ const getUsers = async (req, res) => {
 };
 
 // get users by id...
-const getUser = async (req, res, next) => {
-    const userId = parseInt(req.params.id);
+const getUser = async (req, res) => {
+const userId = parseInt(req.params.id);
+
+const userCheckQuery = "SELECT * FROM users WHERE user_id = ?";
+    const userCheckResult = await pool.query(userCheckQuery, [userId]);
+    if (userCheckResult[0].length === 0) {
+        return error422("User Not Found.", res);
+    }
 
 // Attempt to obtain a database connection
 let connection = await getConnection();
@@ -245,9 +251,7 @@ try {
     ON d.user_id = u.user_id
     WHERE u.user_id = ?`;
     const userResult = await connection.query(userQuery, [userId]);
-    if (userResult[0].length == 0) {
-        return error422("User Not Found.", res);
-    }
+    
     const user = userResult[0][0];
     res.status(200).json({
         status: 200,
@@ -407,6 +411,34 @@ const getUserWma = async (req, res, next) => {
       }
     }
 };
+
+//get List by Employee
+const getUserEmployee = async (req, res) => {
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        // Start a transaction
+        let emaployeeQuery = `SELECT * FROM users WHERE designation_id = 4 ORDER BY user_name `; 
+        const emaployeeResult = await connection.query(emaployeeQuery);
+        const emaployee = emaployeeResult[0];
+  
+        res.status(200).json({
+            status: 200,
+            message: "Employee retrieved successfully.",
+            data: emaployee,
+      });
+    } catch (error) {
+        error500(error, res);
+    } finally {
+        if (connection) {
+            connection.release();
+      }
+    }
+};
 module.exports = {
     addUser,
     userLogin,
@@ -414,6 +446,7 @@ module.exports = {
     getUser,
     updateUser,
     onStatusChange,
-    getUserWma
+    getUserWma,
+    getUserEmployee
 
 }

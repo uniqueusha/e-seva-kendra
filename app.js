@@ -20,6 +20,7 @@ const taskHeaderRoute = require("./src/routes/admin/task_header.route");
 const workDetailsRoute = require("./src/routes/admin/work_details.route");
 const adhaRoute = require("./src/routes/admin/adha.route");
 const taskFooterRoute = require("./src/routes/admin/task_footer.route");
+const paymentStatusRoute = require("./src/routes/admin/payment_status.route");
 
 
 app.use(bodyParser.json());
@@ -49,5 +50,6 @@ app.use('/api/taskHeader',taskHeaderRoute);
 app.use('/api/workDetails',workDetailsRoute);
 app.use('/api/adha',adhaRoute);
 app.use('/api/taskFooter',taskFooterRoute);
+app.use('/api/paymentStatus',paymentStatusRoute);
 
 module.exports = app;

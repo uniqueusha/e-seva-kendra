@@ -48,29 +48,29 @@ const addtaskHeader = async (req, res) => {
     }  
 
      //check Mobile Number already is exists or not
-     const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ? && user_id =?`;
-     const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number, user_id]);
+     const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ?`;
+     const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number]);
      if (isExistMobileNumberResult[0].length > 0) {
          return error422(" Mobile Number is already exists.", res);
      }  
 
     //check service already is exists or not
-    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && user_id =?`;
-    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
+    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status =1`;
+    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id]);
     if (isExistServiceResult[0].length === 0) {
         return error422("Service not Found.", res);
     }
 
     //check work details already is exists or not
-    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && user_id =?`;
-    const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id, user_id]);
+    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && status =1`;
+    const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id]);
     if (isExistWorkDetailsResult[0].length === 0) {
         return error422(" work detail Not Found.", res);
     }
 
     //check document type already is exists or not
-    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && user_id =?`;
-    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id, user_id]);
+    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status =1`;
+    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
     if (isExistDocumentTypeResult[0].length === 0) {
         return error422(" Document Type Not Found.", res);
     }
