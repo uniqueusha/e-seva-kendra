@@ -88,7 +88,7 @@ const getStatus = async (req, res) => {
                 countQuery += ` AND status = 0`;
             } else {
                 getStatusQuery += ` AND  LOWER(status_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(staus_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND LOWER(status_name) LIKE '%${lowercaseKey}%' `;
             }
         }
         getStatusQuery += " ORDER BY created_at DESC";
