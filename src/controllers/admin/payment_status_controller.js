@@ -33,7 +33,7 @@ const addPaymentStatus = async (req, res) => {
     }
     //check payment Status already is exists or not
     const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE LOWER(TRIM(payment_status))= ? `;
-    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [ status_name.toLowerCase()]);
+    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [ payment_status.toLowerCase()]);
     if (isExistPaymentStatusResult[0].length > 0) {
         return error422("Payment Status is already exists.", res);
     } 
