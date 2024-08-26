@@ -12,4 +12,4 @@ router.get('/:id',userController.getUser);
 router.put('/:id',userController.updateUser);
 router.patch('/:id',userController.onStatusChange);
 
-module.exports = router 
+module.exports = router
