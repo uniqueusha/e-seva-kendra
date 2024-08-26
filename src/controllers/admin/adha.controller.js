@@ -68,6 +68,28 @@ const addAdha = async (req, res) => {
         return error422("Adha Name is already exists.", res);
     } 
 
+    //check Mobile Number already is exists or not
+    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ? && user_id =?`;
+    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number, user_id]);
+    if (isExistMobileNumberResult[0].length > 0) {
+        return error422(" Mobile Number is already exists.", res);
+    }  
+
+   //check service already is exists or not
+   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && user_id =?`;
+   const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
+   if (isExistServiceResult[0].length === 0) {
+       return error422("Service not Found.", res);
+   }
+    
+   //check document type already is exists or not
+   const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && user_id =?`;
+   const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id, user_id]);
+   if (isExistDocumentTypeResult[0].length === 0) {
+       return error422(" Document Type Not Found.", res);
+   }
+
+
     // attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -107,23 +129,23 @@ const getAdhas = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name FROM adha a
-        LEFT JOIN users u 
-        ON a.user_id = u.user_id
-        LEFT JOIN services s
-        ON a.service_id=s.service_id
-        LEFT JOIN document_type dt
-        ON a.document_type_id=dt.document_type_id
+        let getAdhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type FROM adha a
+        JOIN users u 
+        ON u.user_id = a.user_id
+        JOIN services s
+        ON s.service_id = a.service_id
+        JOIN document_type dt
+        ON dt.document_type_id = a.document_type_id
         WHERE 1 AND a.user_id = ${user_id}`;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
-        LEFT JOIN users u
-        ON a.user_id = u.user_id
-        LEFT JOIN services s
-        ON a.service_id=s.service_id
-        LEFT JOIN document_type dt
-        ON a.document_type_id=dt.document_type_id
-        WHERE 1 AND a.user_id = ${user_id} `; 
+        JOIN users u 
+        ON u.user_id = a.user_id
+        JOIN services s
+        ON s.service_id = a.service_id
+        JOIN document_type dt
+        ON dt.document_type_id = a.document_type_id
+        WHERE 1 AND a.user_id = ${user_id}`; 
         
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -179,6 +201,103 @@ const getAdhas = async (req, res) => {
 
 }
 
+// get adha report...
+const getAdhasReport = async (req, res) => {
+    const { page, perPage, key,fromDate,
+        toDate,service_id } = req.query;
+    const user_id = req.companyData.user_id;
+
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        let getAdhaQuery = `SELECT a.*, u.user_name,s.services, d.document_type FROM adha a
+        LEFT JOIN users u 
+        ON u.user_id = a.user_id
+        LEFT JOIN services s
+        ON s.service_id = a.service_id
+        LEFT JOIN document_type d
+        ON d.document_type_id = a.document_type_id
+        WHERE 1 AND a.user_id = ${user_id}`;
+
+        let countQuery = `SELECT COUNT(*) AS total FROM adha a
+        LEFT JOIN users u 
+        ON u.user_id = a.user_id
+        LEFT JOIN services s
+        ON s.service_id = a.service_id
+        LEFT JOIN document_type d
+        ON d.document_type_id = a.document_type_id
+        WHERE 1 AND a.user_id = ${user_id}`;
+ 
+        
+        if (key) {
+            const lowercaseKey = key.toLowerCase().trim();
+            if (lowercaseKey === "activated") {
+                getAdhaQuery += ` AND a.status = 1`;
+                countQuery += ` AND a.status = 1`;
+            } else if (lowercaseKey === "deactivated") {
+                getAdhaQuery += ` AND a.status = 0`;
+                countQuery += ` AND a.status = 0`;
+            } else {
+                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+            }
+        }
+        if (fromDate && toDate) {
+            getAdhaQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
+            countQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
+          }
+          if (service_id) {
+            getAdhaQuery += ` AND a.service_id = '${service_id}'`;
+            countQuery += ` AND a.service_id = '${service_id}'`;
+          }
+        getAdhaQuery += " ORDER BY a.created_at DESC";
+
+        // Apply pagination if both page and perPage are provided
+        let total = 0;
+        if (page && perPage) {
+            const totalResult = await connection.query(countQuery);
+            total = parseInt(totalResult[0][0].total);
+
+            const start = (page - 1) * perPage;
+            getAdhaQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+        }
+
+        const result = await connection.query(getAdhaQuery);
+        const adha = result[0];
+
+        // Commit the transaction
+        
+        const data = {
+            status: 200,
+            message: "Adha retrieved successfully",
+            data: adha,
+        };
+        // Add pagination information if provided
+        if (page && perPage) {
+            data.pagination = {
+                per_page: perPage,
+                total: total,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+            };
+        }
+
+        return res.status(200).json(data);
+    } catch (error) {
+        return error500(error, res);
+    }finally {
+        if (connection) connection.release()
+    }
+
+}
+
+
 // get adha  by id...
 const getAdha = async (req, res) => {
     const adhaId = parseInt(req.params.id);
@@ -192,13 +311,13 @@ const getAdha = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        const adhaQuery = `SELECT a.* FROM adha a
-        LEFT JOIN users u
-        ON a.user_id=u.user_id
-        LEFT JOIN services s
-        ON a.service_id=s.service_id
-        LEFT JOIN document_type dt
-        ON a.document_type_id=dt.document_type_id
+        const adhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type FROM adha a
+        JOIN users u 
+        ON u.user_id = a.user_id
+        JOIN services s
+        ON s.service_id = a.service_id
+        JOIN document_type dt
+        ON dt.document_type_id = a.document_type_id
          WHERE a.id=? AND a.user_id=?`;
         const adhaResult = await connection.query(adhaQuery, [adhaId,user_id]);
         
@@ -272,6 +391,7 @@ const updateAdha = async (req, res) => {
         if (adhaResult[0].length == 0) {
             return error422("Adha Not Found.", res);
         }
+        
         if(service_id){
             //check if check service_id exists
             const isExistServiceQuery="SELECT * FROM services WHERE service_id=? AND user_id=?";
@@ -319,8 +439,9 @@ const updateAdha = async (req, res) => {
 }
 
 module.exports = {
-    addAdha,
-    getAdhas,
-    getAdha,
-    updateAdha
-}
+        addAdha,
+        getAdhas,
+        getAdha,
+        updateAdha,
+        getAdhasReport
+ }

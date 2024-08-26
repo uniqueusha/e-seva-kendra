@@ -125,7 +125,7 @@ const getTaskHeaders = async (req, res) => {
         ON d.document_type_id = th.document_type_id
         JOIN users u
         ON u.user_id = th.assigned_to
-        WHERE u.user_id = ${user_id}`;
+        WHERE th.user_id = ${user_id}`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
@@ -135,8 +135,7 @@ const getTaskHeaders = async (req, res) => {
         ON d.document_type_id = th.document_type_id
         JOIN users u
         ON u.user_id = th.assigned_to
-        WHERE u.user_id = ${user_id}`;
-
+        WHERE th.user_id = ${user_id}`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
@@ -207,7 +206,7 @@ const getTaskHeader = async (req, res) => {
         ON d.document_type_id = th.document_type_id
         JOIN users u
         ON u.user_id = th.assigned_to
-        WHERE th.task_header_id = ? && u.user_id = ?`;
+        WHERE th.task_header_id = ? && th.user_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId, user_id]);
         if (taskHeaderResult[0].length == 0) {
              return error422("Task Header Not Found.", res);
