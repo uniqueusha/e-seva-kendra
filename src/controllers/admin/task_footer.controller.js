@@ -25,7 +25,6 @@ error500 = (error, res) => {
     });
 }
 
-
 //add Task Footer..
 const addtaskFooter = async (req, res) => {
     const  task_header_id  = req.body.task_header_id  ? req.body.task_header_id : '';
@@ -35,15 +34,15 @@ const addtaskFooter = async (req, res) => {
     const user_id  = req.companyData.user_id ;
     
         //check task header is exists or not
-        const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? && user_id =?`;
-        const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id, user_id]);
+        const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ?`;
+        const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id]);
         if (isExistTaskHeaderResult[0].length === 0) {
             return error422("Task Header Not Found.", res);
         }
 
         //check status is exists or not
-        const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ? && user_id =?`;
-        const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id, user_id]);
+        const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ?`;
+        const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id]);
         if (isExistStatusResult[0].length === 0) {
             return error422("Status Not Found.", res);
         }
@@ -131,21 +130,21 @@ const getTaskFooters = async (req, res) => {
         const user_id  = req.companyData.user_id ;
         
              //check task footer is exists or not
-            const isExistTaskFooterQuery = `SELECT * FROM task_footers WHERE task_footer_id = ? && user_id =?`;
-            const isExistTaskFooterResult = await pool.query(isExistTaskFooterQuery, [taskFooterId, user_id]);
+            const isExistTaskFooterQuery = `SELECT * FROM task_footers WHERE task_footer_id = ?`;
+            const isExistTaskFooterResult = await pool.query(isExistTaskFooterQuery, [taskFooterId]);
             if (isExistTaskFooterResult[0].length === 0) {
                 return error422("Task Footer Not Found.", res);
             }
             //check task header is exists or not
-            const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? && user_id =?`;
-            const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id, user_id]);
+            const isExistTaskHeaderQuery = `SELECT * FROM task_header WHERE task_header_id = ? $$ status = 1`;
+            const isExistTaskHeaderResult = await pool.query(isExistTaskHeaderQuery, [task_header_id]);
             if (isExistTaskHeaderResult[0].length === 0) {
                 return error422("Task Header Not Found.", res);
             }
     
             //check status is exists or not
-            const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ? && user_id =?`;
-            const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id, user_id]);
+            const isExistStatusQuery = `SELECT * FROM Status WHERE status_id = ? && status = 1`;
+            const isExistStatusResult = await pool.query(isExistStatusQuery, [status_id]);
             if (isExistStatusResult[0].length === 0) {
                 return error422("Status Not Found.", res);
             }
@@ -174,8 +173,38 @@ const getTaskFooters = async (req, res) => {
         await connection.release();
     }
 };
+
+// get task footer by Task Header  id...
+const getTaskHeaderId = async (req, res) => {
+    const taskHeaderId = parseInt(req.params.id);
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        const taskHeaderQuery = `SELECT * FROM task_footers WHERE task_header_id = ?`;
+        const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId]);
+        if (taskHeaderResult[0].length == 0) {
+             return error422("Task Header Not Found.", res);
+        }
+        const taskHeader = taskHeaderResult[0];
+        res.status(200).json({
+            status: 200,
+            message: "Task Footer ByTask Header Id Retrived Successfully",
+            data: taskHeader,
+        });
+} catch (error) {
+    error500(error, res);
+} finally {
+    await connection.release();
+}
+};
 module.exports = {
     addtaskFooter,
     updatetaskFooter,
-    getTaskFooters
+    getTaskFooters,
+    getTaskHeaderId
 }

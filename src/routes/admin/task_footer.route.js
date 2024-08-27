@@ -5,6 +5,8 @@ const checkAuth = require("../../middleware/check.auth");
 
 router.post('/',checkAuth,taskFooterController.addtaskFooter);
 router.get('/',checkAuth,taskFooterController.getTaskFooters);
+router.get('/:id',checkAuth,taskFooterController.getTaskHeaderId);
 router.put('/:id',checkAuth,taskFooterController.updatetaskFooter);
+
 
 module.exports = router 

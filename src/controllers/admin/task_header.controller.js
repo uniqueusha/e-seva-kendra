@@ -55,21 +55,21 @@ const addtaskHeader = async (req, res) => {
      }  
 
     //check service already is exists or not
-    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status =1`;
+    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status = 1`;
     const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id]);
     if (isExistServiceResult[0].length === 0) {
         return error422("Service not Found.", res);
     }
 
     //check work details already is exists or not
-    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && status =1`;
+    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && status = 1`;
     const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id]);
     if (isExistWorkDetailsResult[0].length === 0) {
         return error422(" work detail Not Found.", res);
     }
 
     //check document type already is exists or not
-    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status =1`;
+    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status = 1`;
     const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
     if (isExistDocumentTypeResult[0].length === 0) {
         return error422(" Document Type Not Found.", res);
@@ -254,29 +254,29 @@ const updateTaskheader = async (req, res) => {
     }
     
     //check Mobile Number already is exists or not
-    const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ? AND task_header_id != ? And user_id =?`;
-    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number,taskHeaderId, user_id]);
+    const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ? AND task_header_id != ?`;
+    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number,taskHeaderId]);
     if (isExistMobileNumberResult[0].length > 0) {
         return error422(" Mobile Number is already exists.", res);
     } 
 
     //check service already is exists or not
-    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && user_id =?`;
-    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
+    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
+    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id]);
     if (isExistServiceResult[0].length === 0) {
         return error422("Service not Found.", res);
     }
 
     //check work details already is exists or not
-    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && user_id =?`;
-    const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id, user_id]);
+    const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
+    const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id]);
     if (isExistWorkDetailsResult[0].length === 0) {
         return error422(" work detail Not Found.", res);
     }
 
     //check document type already is exists or not
-    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && user_id =?`;
-    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id, user_id]);
+    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ?`;
+    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
     if (isExistDocumentTypeResult[0].length === 0) {
         return error422(" Document Type Not Found.", res);
     }
@@ -316,7 +316,7 @@ const updateTaskheader = async (req, res) => {
 // get Task list by assigned to...
 const getTaskAssignedTo = async (req, res) => {
     const assignedTo = parseInt(req.query.assignedTo);
-    const user_id = req.companyData.user_id;
+
    
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -325,9 +325,9 @@ const getTaskAssignedTo = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskAssignedToQuery = `SELECT * FROM task_header WHERE assigned_to = ? AND user_id = ? `;
+        const taskAssignedToQuery = `SELECT * FROM task_header WHERE assigned_to = ? `;
 
-        const taskAssignedToResult = await connection.query(taskAssignedToQuery, [assignedTo, user_id]);
+        const taskAssignedToResult = await connection.query(taskAssignedToQuery, [assignedTo]);
         if (taskAssignedToResult[0].length == 0) {
              return error422("Task Assigned To Not Found.", res);
         }

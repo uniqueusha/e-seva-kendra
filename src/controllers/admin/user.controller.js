@@ -248,7 +248,7 @@ try {
 
     const userQuery = `SELECT u.*,designation_name FROM users u
     JOIN designations d
-    ON d.user_id = u.user_id
+    ON d.designation_id = u.designation_id
     WHERE u.user_id = ?`;
     const userResult = await connection.query(userQuery, [userId]);
     
