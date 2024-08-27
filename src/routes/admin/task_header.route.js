@@ -3,7 +3,7 @@ const router = express.Router();
 const taskHeaderController = require("../../controllers/admin/task_header.controller");
 const checkAuth = require("../../middleware/check.auth");
 
-router.post('/',checkAuth,taskHeaderController.addtaskHeader);
+router.post('/',checkAuth,taskHeaderController.addTaskHeader);
 router.get('/',checkAuth,taskHeaderController.getTaskHeaders);
 router.get('/report',taskHeaderController.getReport);
 router.get('/task_assigne',checkAuth,taskHeaderController.getTaskAssignedTo)
