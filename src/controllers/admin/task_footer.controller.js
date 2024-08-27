@@ -185,7 +185,14 @@ const getTaskHeaderId = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT * FROM task_footers WHERE task_header_id = ?`;
+        const taskHeaderQuery = `SELECT tf.*,th.customer_name,s.status_name,u.user_name FROM task_footers tf 
+        JOIN task_header th
+        ON th.task_header_id = tf.task_header_id
+        JOIN status s
+        ON s.status_id = tf.status_id
+        JOIN users u
+        ON u.user_id = tf.user_id
+         WHERE tf.task_header_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId]);
         if (taskHeaderResult[0].length == 0) {
              return error422("Task Header Not Found.", res);

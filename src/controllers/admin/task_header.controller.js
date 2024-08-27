@@ -68,12 +68,6 @@ const addtaskHeader = async (req, res) => {
         return error422(" work detail Not Found.", res);
     }
 
-    //check document type already is exists or not
-    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status = 1`;
-    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
-    if (isExistDocumentTypeResult[0].length === 0) {
-        return error422(" Document Type Not Found.", res);
-    }
 
     //check assigned to already is exists or not
     const isExistAssignedQuery = `SELECT * FROM users WHERE user_id = ? `;
@@ -274,12 +268,7 @@ const updateTaskheader = async (req, res) => {
         return error422(" work detail Not Found.", res);
     }
 
-    //check document type already is exists or not
-    const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ?`;
-    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
-    if (isExistDocumentTypeResult[0].length === 0) {
-        return error422(" Document Type Not Found.", res);
-    }
+    
 
     //check assigned to already is exists or not
     const isExistAssignedQuery = `SELECT * FROM users WHERE user_id = ? `;
@@ -421,6 +410,10 @@ const getReport = async (req, res) => {
         await connection.release();
     }
 };
+
+// multiple select document type
+
+
 
 module.exports = {
     addtaskHeader,
