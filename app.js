@@ -23,6 +23,8 @@ const taskFooterRoute = require("./src/routes/admin/task_footer.route");
 const paymentStatusRoute = require("./src/routes/admin/payment_status.route");
 
 
+
+
 app.use(bodyParser.json());
 app.use((req,res,next)=>{
     res.setHeader("Access-Control-Allow-Origin","*");
@@ -51,5 +53,6 @@ app.use('/api/workDetails',workDetailsRoute);
 app.use('/api/adha',adhaRoute);
 app.use('/api/taskFooter',taskFooterRoute);
 app.use('/api/paymentStatus',paymentStatusRoute);
+
 
 module.exports = app;

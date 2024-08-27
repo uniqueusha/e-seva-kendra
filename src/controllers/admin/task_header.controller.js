@@ -26,7 +26,7 @@ error500 = (error, res) => {
 }
 
 //add Task Header..
-const addtaskHeader = async (req, res) => {
+const addTaskHeader = async (req, res) => {
     const  customer_name  = req.body.customer_name  ? req.body.customer_name.trim()  : '';
     const  mobile_number  = req.body.mobile_number  ? req.body.mobile_number : '';
     const  address  = req.body.address  ? req.body.address.trim() : '';
@@ -36,8 +36,9 @@ const addtaskHeader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to  : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim()  : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
 
-    const user_id  = req.companyData.user_id ;
+    const  user_id  = req.companyData.user_id ;
  
     if (!service_id) {
         return error422("Service Id is required.", res);
@@ -86,7 +87,23 @@ const addtaskHeader = async (req, res) => {
         const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)`;
         const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id];
         const taskHeaderResult = await connection.query(insertTaskHeaderQuery, insertTaskHeaderValues);
+        const task_header_id = taskHeaderResult[0].insertId;
        
+        
+        //insert into documents in Array
+        let documentsArray = taskDocumentsDetails
+        for (let i = 0; i < documentsArray.length; i++) {
+            const element = documentsArray[i];
+            const document_type_id  = element.document_type_id  ? element.document_type_id : '';
+            const note = element.note ? element.note.trim() : '';
+            if (!document_type_id) {
+                await query("ROLLBACK");
+                return error422("document type id is require", res);
+            }
+            let insertTaskDocumentsDetailsQuery = 'INSERT INTO task_documents (task_header_id, document_type_id, note) VALUES (?,?,?)';
+            let insertTaskDocumentsDetailsvalues = [task_header_id, document_type_id, note];
+            let insertTaskDocumentsDetailsResult = await connection.query(insertTaskDocumentsDetailsQuery, insertTaskDocumentsDetailsvalues);
+        }
         //commit the transation
         await connection.commit();
         res.status(200).json({
@@ -103,33 +120,26 @@ const addtaskHeader = async (req, res) => {
 //Get Task Headers List...
 const getTaskHeaders = async (req, res) => {
     const { page, perPage, key } = req.query;
-    const user_id  = req.companyData.user_id ;
     // Attempt to obtain a database connection
     let connection = await getConnection();
     try {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,d.document_type,u.user_name FROM task_header th
+        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
-        JOIN document_type d
-        ON d.document_type_id = th.document_type_id
         JOIN users u
-        ON u.user_id = th.assigned_to
-        WHERE th.user_id = ${user_id}`;
+        ON u.user_id = th.assigned_to`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
-        JOIN document_type d
-        ON d.document_type_id = th.document_type_id
         JOIN users u
-        ON u.user_id = th.assigned_to
-        WHERE th.user_id = ${user_id}`;
+        ON u.user_id = th.assigned_to`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
@@ -149,17 +159,16 @@ const getTaskHeaders = async (req, res) => {
         if (page && perPage) {
             const totalResult = await connection.query(countQuery);
             total = parseInt(totalResult[0][0].total);
-
             const start = (page - 1) * perPage;
             getTaskHeaderQuery += ` LIMIT ${perPage} OFFSET ${start}`;
         }
-        const result = await connection.query(getTaskHeaderQuery);
-        const tasKHeader = result[0];
+        let result = await connection.query(getTaskHeaderQuery);
+        const taskHeader = result[0];
 
         const data = {
             status: 200,
             message: "TasK Header retrieved successfully",
-            data: tasKHeader,
+            data: taskHeader,
         };
         // Add pagination information if provided
         if (page && perPage) {
@@ -182,7 +191,6 @@ const getTaskHeaders = async (req, res) => {
 // get Task Header by id...
 const getTaskHeader = async (req, res) => {
     const taskHeaderId = parseInt(req.params.id);
-    const user_id = req.companyData.user_id;
     
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -191,21 +199,24 @@ const getTaskHeader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,d.document_type,u.user_name FROM task_header th
+        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
-        JOIN document_type d
-        ON d.document_type_id = th.document_type_id
         JOIN users u
         ON u.user_id = th.assigned_to
-        WHERE th.task_header_id = ? && th.user_id = ?`;
-        const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId, user_id]);
+        WHERE th.task_header_id = ?`;
+        const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId]);
         if (taskHeaderResult[0].length == 0) {
              return error422("Task Header Not Found.", res);
         }
-        const taskHeader = taskHeaderResult[0][0];
+        let taskHeader = taskHeaderResult[0][0];
+        //get documents
+        const taskDocumentsQuery = `SELECT * FROM task_documents WHERE task_header_id = ?`;
+        const taskDocumentsResult = await connection.query(taskDocumentsQuery, [taskHeaderId]);
+        taskHeader['taskDocumentsDetails'] = taskDocumentsResult[0];
+
         res.status(200).json({
             status: 200,
             message: "Task Header Retrived Successfully",
@@ -230,6 +241,7 @@ const updateTaskheader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim() : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
     const user_id  = req.companyData.user_id;
 
     if (!service_id) {
@@ -287,7 +299,29 @@ const updateTaskheader = async (req, res) => {
         // Update Task Heater
         const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, document_type_id = ?,assigned_to = ?, due_date = ?, payment_status = ?, user_id = ? WHERE task_header_id = ?`;
         await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id, taskHeaderId]);
-
+        
+        //update into task documents
+        let documentsArray = taskDocumentsDetails
+        for (let i = 0; i < documentsArray.length; i++) {
+            const element = documentsArray[i];
+            const task_document_id = element.task_document_id ? element.task_document_id : '';
+            const document_type_id  = element.document_type_id  ? element.document_type_id : '';
+            const note = element.note ? element.note.trim() : '';
+            if (!document_type_id) {
+                await query("ROLLBACK");
+                return error422("document type id is require", res);
+            }
+            if (task_document_id) {
+                let updateTaskDocumentsDetailsQuery = `UPDATE task_documents SET documents_type_id = ?, note = ? WHERE task_header_id= ? AND task_document_id= ?`;
+                let updateTaskDocumentsDetailsValues = [document_type_id, note, taskHeaderId, task_document_id];
+                let updateTaskDocumentsDetailsResult = await connection.query(updateTaskDocumentsDetailsQuery, updateTaskDocumentsDetailsValues);
+                console.log(updateTaskDocumentsDetailsResult);
+              } else {
+                let insertTaskDocumentsDetailsQuery = 'INSERT INTO task_documents (task_header_id, document_type_id, note) VALUES (?,?,?)';
+                let insertTaskDocumentsDetailsValues = [taskHeaderId, document_type_id, note];
+                let insertTaskDocumentsDetailsResult = await connection.query(insertTaskDocumentsDetailsQuery, insertTaskDocumentsDetailsValues);
+              }
+        }
         // Commit the transaction
         await connection.commit();
         return res.status(200).json({
@@ -295,6 +329,8 @@ const updateTaskheader = async (req, res) => {
             message: "Task Header updated successfully.",
         });
     } catch (error) {
+        console.log(error);
+        
         await connection.rollback();
         return error500(error, res);
     } finally {
@@ -416,7 +452,7 @@ const getReport = async (req, res) => {
 
 
 module.exports = {
-    addtaskHeader,
+    addTaskHeader,
     getTaskHeaders,
     getTaskHeader,
     updateTaskheader,
