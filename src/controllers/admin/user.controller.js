@@ -439,6 +439,34 @@ const getUserEmployee = async (req, res) => {
       }
     }
 };
+
+//get active status ...
+const getStatusWma = async (req, res) => {
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        // Start a transaction
+        let statusQuery = `SELECT * FROM verification_status WHERE status = 1 ORDER BY verification_status_id`; 
+        const statusResult = await connection.query(statusQuery);
+        const status = statusResult[0];
+  
+        res.status(200).json({
+            status: 200,
+            message: "verification status retrieved successfully.",
+            data: status,
+      });
+    } catch (error) {
+        error500(error, res);
+    } finally {
+        if (connection) {
+            connection.release();
+      }
+    }
+};
+
 module.exports = {
     addUser,
     userLogin,
@@ -447,6 +475,7 @@ module.exports = {
     updateUser,
     onStatusChange,
     getUserWma,
+    getStatusWma,
     getUserEmployee
 
 }
