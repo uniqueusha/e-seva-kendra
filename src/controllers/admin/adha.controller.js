@@ -61,20 +61,6 @@ const addAdha = async (req, res) => {
         return error422("User ID is required.", res);
     }
 
-    //check adha already exists or not
-    const isExistAdhaQuery = `SELECT * FROM adha WHERE name= ?`;
-    const isExistAdhaResult = await pool.query(isExistAdhaQuery, [name]);
-    if (isExistAdhaResult[0].length > 0) {
-        return error422("Adha Name is already exists.", res);
-    } 
-
-    //check Mobile Number already is exists or not
-    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ?`;
-    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number]);
-    if (isExistMobileNumberResult[0].length > 0) {
-        return error422(" Mobile Number is already exists.", res);
-    }  
-
    //check service already is exists or not
    const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
@@ -88,7 +74,6 @@ const addAdha = async (req, res) => {
    if (isExistDocumentTypeResult[0].length === 0) {
        return error422(" Document Type Not Found.", res);
    }
-
 
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -413,20 +398,12 @@ const updateAdha = async (req, res) => {
                 return error422("document type Not Found",res);
             }
         }
-        // Check if the provided adha exists and is active 
-        const existingAdhaQuery = "SELECT * FROM adha WHERE name  = ? AND id!=?";
-        const existingAdhaResult = await connection.query(existingAdhaQuery, [name, adhaId]);
 
-        if (existingAdhaResult[0].length > 0) {
-            return error422("Adha Name already exists.", res);
-        }
-        
         // Update the adha record with new data
         const updateQuery = `
             UPDATE adha
             SET name = ?, mobile_number=?,enrollment_number=?,enollment_time=?,service_id=?,document_type_id=?,verification_status=?,payment_mode=?,amount=?, user_id = ?
-            WHERE id = ?
-        `;
+            WHERE id = ?`;
 
         await connection.query(updateQuery, [name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount, user_id,adhaId]);
         // Commit the transaction
@@ -449,4 +426,4 @@ module.exports = {
         getAdha,
         updateAdha,
         getAdhasReport
- }
+}
