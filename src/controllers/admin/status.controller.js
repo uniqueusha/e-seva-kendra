@@ -234,7 +234,7 @@ const onStatusChange = async (req, res) => {
             });
         }
   
-        // Soft update the priority status
+        // Soft update the status
         const updateQuery = `
               UPDATE status
               SET status = ?
@@ -265,7 +265,7 @@ const getStatusWma = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
         // Start a transaction
-        let statusQuery = `SELECT * FROM status WHERE status = 1 ORDER BY status_name`; 
+        let statusQuery = `SELECT * FROM status WHERE status = 1 ORDER BY status_id`; 
         const statusResult = await connection.query(statusQuery);
         const status = statusResult[0];
   

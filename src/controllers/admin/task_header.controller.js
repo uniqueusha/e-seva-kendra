@@ -220,7 +220,10 @@ const getTaskHeader = async (req, res) => {
         }
         let taskHeader = taskHeaderResult[0][0];
         //get documents
-        const taskDocumentsQuery = `SELECT * FROM task_documents WHERE task_header_id = ?`;
+        const taskDocumentsQuery = `SELECT td.*,d.document_type FROM task_documents td 
+        JOIN document_type d
+        ON d.document_type_id = td.document_type_id
+        WHERE task_header_id = ?`;
         const taskDocumentsResult = await connection.query(taskDocumentsQuery, [taskHeaderId]);
         taskHeader['taskDocumentsDetails'] = taskDocumentsResult[0];
 
@@ -320,15 +323,14 @@ const updateTaskheader = async (req, res) => {
                 await query("ROLLBACK");
                 return error422("document type id is require", res);
             }
-            if (task_document_id) {
-                let updateTaskDocumentsDetailsQuery = `UPDATE task_documents SET documents_type_id = ?, note = ? WHERE task_header_id= ? AND task_document_id= ?`;
+                let updateTaskDocumentsDetailsQuery = `UPDATE task_documents SET document_type_id = ?, note = ? WHERE task_header_id= ? AND task_document_id= ?`;
                 let updateTaskDocumentsDetailsValues = [document_type_id, note, taskHeaderId, task_document_id];
                 let updateTaskDocumentsDetailsResult = await connection.query(updateTaskDocumentsDetailsQuery, updateTaskDocumentsDetailsValues);
-              } else {
+            if (!task_document_id) {
                 let insertTaskDocumentsDetailsQuery = 'INSERT INTO task_documents (task_header_id, document_type_id, note) VALUES (?,?,?)';
                 let insertTaskDocumentsDetailsValues = [taskHeaderId, document_type_id, note];
                 let insertTaskDocumentsDetailsResult = await connection.query(insertTaskDocumentsDetailsQuery, insertTaskDocumentsDetailsValues);
-              }
+            }
         }
         // Commit the transaction
         await connection.commit();
@@ -337,8 +339,6 @@ const updateTaskheader = async (req, res) => {
             message: "Task Header updated successfully.",
         });
     } catch (error) {
-        console.log(error);
-        
         await connection.rollback();
         return error500(error, res);
     } finally {
@@ -350,7 +350,6 @@ const updateTaskheader = async (req, res) => {
 const getTaskAssignedTo = async (req, res) => {
     const assignedTo = parseInt(req.query.assignedTo);
 
-   
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -358,8 +357,16 @@ const getTaskAssignedTo = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskAssignedToQuery = `SELECT * FROM task_header WHERE assigned_to = ? `;
-
+        const taskAssignedToQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
+        JOIN services s
+        ON s.service_id = th.service_id
+        JOIN work_details wd
+        ON wd.work_details_id = th.work_details_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id
+        WHERE assigned_to = ? `;
         const taskAssignedToResult = await connection.query(taskAssignedToQuery, [assignedTo]);
         if (taskAssignedToResult[0].length == 0) {
              return error422("Task Assigned To Not Found.", res);
@@ -455,7 +462,92 @@ const getReport = async (req, res) => {
     }
 };
 
-// multiple select document type
+// Delete Task Document.
+const deleteTaskDocuments = async (req, res) => {
+    const taskHeaderId = parseInt(req.params.id);
+    const taskDocumentId = parseInt(req.query.Id);
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        //check task header exists
+        const taskHeaderIdExistsQuery = "SELECT * FROM task_header WHERE task_header_id = ?";
+        const taskHeaderIdExistsResult = await connection.query(taskHeaderIdExistsQuery, [taskHeaderId]);
+        if (taskHeaderIdExistsResult[0].length === 0) {
+            return error422("Task Header not Found.", res);
+        }
+
+        //delete task document..
+        const deleteTaskDocumentQuery = `DELETE FROM task_documents WHERE task_header_id = ? AND task_document_id = ?`;
+        const deleteTaskDocumentsResult = await connection.query(deleteTaskDocumentQuery, [taskHeaderId, taskDocumentId]);
+        if (deleteTaskDocumentsResult[0].length == 0) {
+             return error422("Task Document Not Found.", res);
+        }
+        
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: "Task Document Delete successfully.",
+        });
+    } catch (error) {
+      await connection.rollback();
+      return error500(error, res);
+    } finally {
+      await connection.release();
+    }
+};
+
+// task status change..
+const updateTaskStatusChange = async (req, res) => {
+    const taskHeaderId = parseInt(req.params.id);
+    const  status_id  = req.body.status_id  ? req.body.status_id : '';
+    if (!taskHeaderId) {
+        return error422("Task Header Id is required.", res);
+    }  else if (!status_id) {
+        return error422("Status ID is required.", res);
+    }
+
+    // Check if Task header exists
+    const taskHeaderQuery = "SELECT * FROM task_header WHERE task_header_id = ? ";
+    const taskHeaderResult = await pool.query(taskHeaderQuery, [taskHeaderId]);
+    if (taskHeaderResult[0].length === 0) {
+        return error422("Task Header Not Found.", res);
+    }
+
+    // Check if status exists
+    const statusQuery = "SELECT * FROM status WHERE status_id  = ? && status = 1";
+    const statusResult = await pool.query(statusQuery, [status_id]);
+    if (statusResult[0].length == 0) {
+        return error422("Status Not Found.", res);
+    }
+
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+
+        // update task Status
+        const updateQuery = `UPDATE task_header SET status_id = ? WHERE task_header_id = ?`;
+        await connection.query(updateQuery, [status_id, taskHeaderId]);
+
+        //commit the transation
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: `Task Status update successfully.`,
+        });
+    } catch (error) {
+        return error500(error, res);
+    } finally {
+        await connection.release();
+    }
+};
 
 
 
@@ -465,5 +557,7 @@ module.exports = {
     getTaskHeader,
     updateTaskheader,
     getTaskAssignedTo,
-    getReport
+    getReport,
+    deleteTaskDocuments,
+    updateTaskStatusChange
 }
