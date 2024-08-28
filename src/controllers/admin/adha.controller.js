@@ -62,29 +62,29 @@ const addAdha = async (req, res) => {
     }
 
     //check adha already exists or not
-    const isExistAdhaQuery = `SELECT * FROM adha WHERE name= ? AND user_id=? `;
-    const isExistAdhaResult = await pool.query(isExistAdhaQuery, [name,user_id]);
+    const isExistAdhaQuery = `SELECT * FROM adha WHERE name= ?`;
+    const isExistAdhaResult = await pool.query(isExistAdhaQuery, [name]);
     if (isExistAdhaResult[0].length > 0) {
         return error422("Adha Name is already exists.", res);
     } 
 
     //check Mobile Number already is exists or not
-    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ? && user_id =?`;
-    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number, user_id]);
+    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ? && status = 1`;
+    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number]);
     if (isExistMobileNumberResult[0].length > 0) {
         return error422(" Mobile Number is already exists.", res);
     }  
 
    //check service already is exists or not
-   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && user_id =?`;
+   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status = 1`;
    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
    if (isExistServiceResult[0].length === 0) {
        return error422("Service not Found.", res);
    }
     
    //check document type already is exists or not
-   const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && user_id =?`;
-   const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id, user_id]);
+   const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status = 1`;
+   const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
    if (isExistDocumentTypeResult[0].length === 0) {
        return error422(" Document Type Not Found.", res);
    }
@@ -386,31 +386,31 @@ const updateAdha = async (req, res) => {
         await connection.beginTransaction();
 
         // Check if adha exists
-        const adhaQuery = "SELECT * FROM adha WHERE id  = ? AND user_id=?";
-        const adhaResult = await connection.query(adhaQuery, [adhaId,user_id]);
+        const adhaQuery = "SELECT * FROM adha WHERE id  = ?";
+        const adhaResult = await connection.query(adhaQuery, [adhaId]);
         if (adhaResult[0].length == 0) {
             return error422("Adha Not Found.", res);
         }
         
         if(service_id){
             //check if check service_id exists
-            const isExistServiceQuery="SELECT * FROM services WHERE service_id=? AND user_id=?";
-            const serviceResult=await connection.query(isExistServiceQuery,[service_id,user_id]);
+            const isExistServiceQuery="SELECT * FROM services WHERE service_id = ? AND status = 1";
+            const serviceResult=await connection.query(isExistServiceQuery,[service_id]);
             if(serviceResult[0].length==0){
                 return error422("Service Not Found",res);
             }
         }
         if(document_type_id){
             //check if check document_type_id_id exists
-            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id=? AND user_id=?";
-            const DocumentTypeResult=await connection.query(isExistDocumentTypeQuery,[document_type_id,user_id]);
+            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id=? AND status = 1";
+            const DocumentTypeResult=await connection.query(isExistDocumentTypeQuery,[document_type_id]);
             if(DocumentTypeResult[0].length==0){
                 return error422("document type Not Found",res);
             }
         }
         // Check if the provided adha exists and is active 
-        const existingAdhaQuery = "SELECT * FROM adha WHERE name  = ? AND id!=? AND user_id = ?";
-        const existingAdhaResult = await connection.query(existingAdhaQuery, [name, adhaId, user_id]);
+        const existingAdhaQuery = "SELECT * FROM adha WHERE name  = ? AND id!=?";
+        const existingAdhaResult = await connection.query(existingAdhaQuery, [name, adhaId]);
 
         if (existingAdhaResult[0].length > 0) {
             return error422("Adha Name already exists.", res);
