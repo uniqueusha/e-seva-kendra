@@ -6,6 +6,7 @@ const checkAuth = require("../../middleware/check.auth");
 router.post('/',userController.addUser);
 router.get('/',userController.getUsers);
 router.post('/login',userController.userLogin);
+router.get('/status',userController.getStatusWma);
 router.get('/wma',userController.getUserWma);
 router.get('/employee',userController.getUserEmployee);
 router.get('/:id',userController.getUser);
