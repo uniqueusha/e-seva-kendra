@@ -69,21 +69,21 @@ const addAdha = async (req, res) => {
     } 
 
     //check Mobile Number already is exists or not
-    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ? && status = 1`;
+    const isExistMobileNumberQuery = `SELECT * FROM adha WHERE mobile_number = ?`;
     const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number]);
     if (isExistMobileNumberResult[0].length > 0) {
         return error422(" Mobile Number is already exists.", res);
     }  
 
    //check service already is exists or not
-   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status = 1`;
+   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
    const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
    if (isExistServiceResult[0].length === 0) {
        return error422("Service not Found.", res);
    }
     
    //check document type already is exists or not
-   const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ? && status = 1`;
+   const isExistDocumentTypeQuery = `SELECT * FROM document_type WHERE document_type_id = ?`;
    const isExistDocumentTypeResult = await pool.query(isExistDocumentTypeQuery, [document_type_id]);
    if (isExistDocumentTypeResult[0].length === 0) {
        return error422(" Document Type Not Found.", res);
@@ -118,9 +118,8 @@ const addAdha = async (req, res) => {
 
 // get adha list...
 const getAdhas = async (req, res) => {
-    const { page, perPage, key } = req.query;
-    const user_id = req.companyData.user_id;
-
+    const { page, perPage, key, userId } = req.query;
+    
     // attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -136,7 +135,7 @@ const getAdhas = async (req, res) => {
         ON s.service_id = a.service_id
         JOIN document_type dt
         ON dt.document_type_id = a.document_type_id
-        WHERE 1 AND a.user_id = ${user_id}`;
+        WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
         JOIN users u 
@@ -145,7 +144,7 @@ const getAdhas = async (req, res) => {
         ON s.service_id = a.service_id
         JOIN document_type dt
         ON dt.document_type_id = a.document_type_id
-        WHERE 1 AND a.user_id = ${user_id}`; 
+        WHERE 1`; 
         
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -159,6 +158,10 @@ const getAdhas = async (req, res) => {
                 getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
                 countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
             }
+        }
+        if (userId) {
+            getAdhaQuery += ` AND a.user_id = ${userId}`;
+            countQuery += `  AND a.user_id = ${userId}`;
         }
         getAdhaQuery += " ORDER BY a.created_at DESC";
 
@@ -194,6 +197,8 @@ const getAdhas = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
+        console.log(error);
+        
         return error500(error, res);
     }finally {
         if (connection) connection.release()
@@ -394,7 +399,7 @@ const updateAdha = async (req, res) => {
         
         if(service_id){
             //check if check service_id exists
-            const isExistServiceQuery="SELECT * FROM services WHERE service_id = ? AND status = 1";
+            const isExistServiceQuery="SELECT * FROM services WHERE service_id = ?";
             const serviceResult=await connection.query(isExistServiceQuery,[service_id]);
             if(serviceResult[0].length==0){
                 return error422("Service Not Found",res);
@@ -402,7 +407,7 @@ const updateAdha = async (req, res) => {
         }
         if(document_type_id){
             //check if check document_type_id_id exists
-            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id=? AND status = 1";
+            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id=?";
             const DocumentTypeResult=await connection.query(isExistDocumentTypeQuery,[document_type_id]);
             if(DocumentTypeResult[0].length==0){
                 return error422("document type Not Found",res);
