@@ -36,8 +36,9 @@ const addTaskHeader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to  : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim()  : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  status_id  = req.body.status_id  ? req.body.status_id : '';
+    const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
-
     const  user_id  = req.companyData.user_id ;
  
     if (!service_id) {
@@ -46,7 +47,7 @@ const addTaskHeader = async (req, res) => {
         return error422("User ID is required.", res);
     }  else if (!work_details_id) {
         return error422("work_details is required.", res);
-    }  
+    }   
 
      //check Mobile Number already is exists or not
      const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ?`;
@@ -84,8 +85,8 @@ const addTaskHeader = async (req, res) => {
          //Start the transaction
          await connection.beginTransaction();
         //insert into Task Header
-        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)`;
-        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id];
+        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
+        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id];
         const taskHeaderResult = await connection.query(insertTaskHeaderQuery, insertTaskHeaderValues);
         const task_header_id = taskHeaderResult[0].insertId;
        
@@ -126,20 +127,24 @@ const getTaskHeaders = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name FROM task_header th
+        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
         JOIN users u
-        ON u.user_id = th.assigned_to`;
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
         JOIN users u
-        ON u.user_id = th.assigned_to`;
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
@@ -199,13 +204,15 @@ const getTaskHeader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name FROM task_header th
+        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
         ON wd.work_details_id = th.work_details_id
         JOIN users u
         ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id
         WHERE th.task_header_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId]);
         if (taskHeaderResult[0].length == 0) {
@@ -241,6 +248,8 @@ const updateTaskheader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim() : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  status_id  = req.body.status_id  ? req.body.status_id : '';
+    const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
     const user_id  = req.companyData.user_id;
 
@@ -297,8 +306,8 @@ const updateTaskheader = async (req, res) => {
         await connection.beginTransaction();
 
         // Update Task Heater
-        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, document_type_id = ?,assigned_to = ?, due_date = ?, payment_status = ?, user_id = ? WHERE task_header_id = ?`;
-        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, user_id, taskHeaderId]);
+        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, document_type_id = ?,assigned_to = ?, due_date = ?, payment_status = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
+        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id, taskHeaderId]);
         
         //update into task documents
         let documentsArray = taskDocumentsDetails
@@ -315,7 +324,6 @@ const updateTaskheader = async (req, res) => {
                 let updateTaskDocumentsDetailsQuery = `UPDATE task_documents SET documents_type_id = ?, note = ? WHERE task_header_id= ? AND task_document_id= ?`;
                 let updateTaskDocumentsDetailsValues = [document_type_id, note, taskHeaderId, task_document_id];
                 let updateTaskDocumentsDetailsResult = await connection.query(updateTaskDocumentsDetailsQuery, updateTaskDocumentsDetailsValues);
-                console.log(updateTaskDocumentsDetailsResult);
               } else {
                 let insertTaskDocumentsDetailsQuery = 'INSERT INTO task_documents (task_header_id, document_type_id, note) VALUES (?,?,?)';
                 let insertTaskDocumentsDetailsValues = [taskHeaderId, document_type_id, note];
