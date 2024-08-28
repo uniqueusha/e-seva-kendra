@@ -348,8 +348,9 @@ const updateTaskheader = async (req, res) => {
 
 // get Task list by assigned to...
 const getTaskAssignedTo = async (req, res) => {
+    const { page, perPage, key, statusId } = req.query;
     const assignedTo = parseInt(req.query.assignedTo);
-
+    
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -357,7 +358,7 @@ const getTaskAssignedTo = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskAssignedToQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
+        let taskAssignedToQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
@@ -366,21 +367,65 @@ const getTaskAssignedTo = async (req, res) => {
         ON u.user_id = th.assigned_to
         JOIN status st
         ON st.status_id = th.status_id
-        WHERE assigned_to = ? `;
-        const taskAssignedToResult = await connection.query(taskAssignedToQuery, [assignedTo]);
-        if (taskAssignedToResult[0].length == 0) {
-             return error422("Task Assigned To Not Found.", res);
+        WHERE assigned_to = ${assignedTo}`;
+        let countQuery = `SELECT COUNT(*) AS total FROM task_header th
+        JOIN services s
+        ON s.service_id = th.service_id
+        JOIN work_details wd
+        ON wd.work_details_id = th.work_details_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id
+        WHERE assigned_to = ${assignedTo}`;
+        if (key) {
+            const lowercaseKey = key.toLowerCase().trim();
+            if (lowercaseKey === "activated") {
+                taskAssignedToQuery += ` AND status = 1`;
+                countQuery += ` AND status = 1`;
+            } else if (lowercaseKey === "deactivated") {
+                taskAssignedToQuery += ` AND status = 0`;
+                countQuery += ` AND status = 0`;
+            } else {
+                taskAssignedToQuery += ` AND  LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
+            }
         }
+        if (statusId) {
+            taskAssignedToQuery += ` AND th.status_id = ${statusId}`;
+            countQuery += `  AND th.status_id = ${statusId}`;
+        }
+        taskAssignedToQuery += " ORDER BY created_at DESC";
+        
+        // Apply pagination if both page and perPage are provided
+        let total = 0;
+        if (page && perPage) {
+            const totalResult = await connection.query(countQuery);
+            total = parseInt(totalResult[0][0].total);
+            const start = (page - 1) * perPage;
+            taskAssignedToQuery += ` LIMIT ${perPage} OFFSET ${start}`;
+        }
+        let taskAssignedToResult = await connection.query(taskAssignedToQuery);
         const taskAssignedTo = taskAssignedToResult[0];
-        res.status(200).json({
+        const data = {
             status: 200,
             message: "Task Assigned To Retrived Successfully",
             data: taskAssignedTo,
-        });
+        };
+        // Add pagination information if provided
+        if (page && perPage) {
+            data.pagination = {
+                per_page: perPage,
+                total: total,
+                current_page: page,
+                last_page: Math.ceil(total / perPage),
+            };
+        }
+        return res.status(200).json(data);
     } catch (error) {
-    error500(error, res);
+        return error500(error, res);
     } finally {
-    await connection.release();
+        await connection.release();
     }
 };
 
