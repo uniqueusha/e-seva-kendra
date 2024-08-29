@@ -462,8 +462,8 @@ const getReport = async (req, res) => {
 
         // from date and to date
         if (fromDate && toDate) {
-            getReportQuery += ` AND th.created_at >= '${fromDate}' AND th.created_at <= '${toDate}'`;
-            countQuery += ` AND th.created_at >= '${fromDate}' AND th.created_at <= '${toDate}'`;
+            getReportQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+            countQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
         }
         if (assigned_to) {
             getReportQuery += ` AND th.assigned_to = '${assigned_to}'`;
