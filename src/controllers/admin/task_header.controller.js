@@ -443,16 +443,22 @@ const getReport = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getReportQuery = `SELECT th.*,tf.status_id FROM task_header th
-        JOIN task_footers tf
-        ON th.task_header_id = tf.task_header_id
-        WHERE 1`;
+        let getReportQuery = `SELECT th.*, s.services, u.user_name, st.status_name FROM task_header th
+        JOIN services s
+        ON s.service_id = th.service_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id WHERE 1`;
         
         
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
-        JOIN task_footers tf
-        ON th.task_header_id = tf.task_header_id
-        WHERE 1`;
+        JOIN services s
+        ON s.service_id = th.service_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id WHERE 1`;
 
         // from date and to date
         if (fromDate && toDate) {
@@ -465,8 +471,8 @@ const getReport = async (req, res) => {
         }
 
         if (status_id) {
-            getReportQuery += ` AND tf.status_id = '${status_id}'`;
-            countQuery += ` AND tf.status_id = '${status_id}'`;
+            getReportQuery += ` AND th.status_id = '${status_id}'`;
+            countQuery += ` AND th.status_id = '${status_id}'`;
         }
 
         if (service_id) {
