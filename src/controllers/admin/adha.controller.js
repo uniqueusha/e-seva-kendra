@@ -208,7 +208,7 @@ const getAdhas = async (req, res) => {
 
 // get adha report...
 const getAdhasReport = async (req, res) => {
-    const { page, perPage, key, fromDate, toDate, service_id, verify_status, payment_mode, user_id, current_date } = req.query;
+    const { page, perPage, key, fromDate, toDate, service_id, verification_status, payment_mode, user_id, current_date } = req.query;
     
 
     
@@ -260,9 +260,9 @@ const getAdhasReport = async (req, res) => {
             getAdhaQuery += ` AND a.service_id = '${service_id}'`;
             countQuery += ` AND a.service_id = '${service_id}'`;
         }
-        if (verify_status) {
-            getAdhaQuery += ` AND a.verification_status = '${verify_status}'`;
-            countQuery += ` AND a.verification_status = '${verify_status}'`;
+        if (verification_status) {
+            getAdhaQuery += ` AND a.verification_status = '${verification_status}'`;
+            countQuery += ` AND a.verification_status = '${verification_status}'`;
         }
         if (payment_mode) {
             getAdhaQuery += ` AND a.payment_mode = '${payment_mode}'`;
