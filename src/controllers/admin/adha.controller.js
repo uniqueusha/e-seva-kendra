@@ -37,7 +37,8 @@ const addAdha = async (req, res) => {
     const  verification_status  = req.body.verification_status  ? req.body.verification_status  : '';
     const  payment_mode  = req.body.payment_mode  ? req.body.payment_mode : '';
     const  amount  = req.body.amount  ? req.body.amount  : '';
-    const user_id  =req.companyData.user_id;
+    const  adhaDocumentsDetails = req.body.adhaDocumentsDetails ? req.body.adhaDocumentsDetails : [];
+    const  user_id  =req.companyData.user_id;
 
     if (!name) {
         return error422("Name is required.", res);
@@ -87,7 +88,21 @@ const addAdha = async (req, res) => {
         const insertadhaQuery = `INSERT INTO adha (name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount,user_id ) VALUES (?,?,?,?,?,?,?,?,?,? ) `;
         const insertadhaValues= [name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount,user_id];
         const adhaResult = await connection.query(insertadhaQuery, insertadhaValues);
-
+        const id = adhaResult[0].insertId;
+        //insert into documents in Array
+        let documentsArray = adhaDocumentsDetails
+        for (let i = 0; i < documentsArray.length; i++) {
+            const element = documentsArray[i];
+            const document_type_id  = element.document_type_id  ? element.document_type_id : '';
+            const note = element.note ? element.note.trim() : '';
+            if (!document_type_id) {
+                await query("ROLLBACK");
+                return error422("document type id is require", res);
+            }
+            let insertAdhaDocumentsDetailsQuery = 'INSERT INTO adha_documents (id, document_type_id, note) VALUES (?,?,?)';
+            let insertAdhaDocumentsDetailsvalues = [id, document_type_id, note];
+            let insertAdhaDocumentsDetailsResult = await connection.query(insertAdhaDocumentsDetailsQuery, insertAdhaDocumentsDetailsvalues);
+        }
          // Commit the transaction
          await connection.commit();
         res.status(200).json({
@@ -314,8 +329,15 @@ const getAdha = async (req, res) => {
         if (adhaResult[0].length == 0) {
             return error422("Adha Not Found.", res);
         }
-        const adha = adhaResult[0][0];
-        
+        let adha = adhaResult[0][0];
+        //get documents
+        const adhaDocumentsQuery = `SELECT ad.*,d.document_type FROM adha_documents ad 
+        JOIN document_type d
+        ON d.document_type_id = ad.document_type_id
+        WHERE ad.id = ?`;
+        const adhaDocumentsResult = await connection.query(adhaDocumentsQuery, [adhaId]);
+        adha['ashaDocumentsDetails'] = adhaDocumentsResult[0];
+
         return res.status(200).json({
             status: 200,
             message: "Adha Retrived Successfully",
@@ -341,6 +363,7 @@ const updateAdha = async (req, res) => {
     const verification_status = req.body.verification_status ? req.body.verification_status : '';
     const payment_mode = req.body.payment_mode ? req.body.payment_mode : '';
     const amount = req.body.amount ? req.body.amount : '';
+    const adhaDocumentsDetails = req.body.adhaDocumentsDetails ? req.body.adhaDocumentsDetails : [];
     const user_id = req.companyData.user_id;
 
     if (!name) {
@@ -400,12 +423,29 @@ const updateAdha = async (req, res) => {
         }
 
         // Update the adha record with new data
-        const updateQuery = `
-            UPDATE adha
-            SET name = ?, mobile_number=?,enrollment_number=?,enollment_time=?,service_id=?,document_type_id=?,verification_status=?,payment_mode=?,amount=?, user_id = ?
-            WHERE id = ?`;
-
+        const updateQuery = `UPDATE adha SET name = ?, mobile_number=?,enrollment_number=?,enollment_time=?,service_id=?,document_type_id=?,verification_status=?,payment_mode=?,amount=?, user_id = ? WHERE id = ?`;
         await connection.query(updateQuery, [name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount, user_id,adhaId]);
+
+        //update into adha documents
+        let documentsArray = adhaDocumentsDetails
+        for (let i = 0; i < documentsArray.length; i++) {
+            const element = documentsArray[i];
+            const adha_document_id = element.adha_document_id ? element.adha_document_id : '';
+            const document_type_id  = element.document_type_id  ? element.document_type_id : '';
+            const note = element.note ? element.note.trim() : '';
+            if (!document_type_id) {
+                await query("ROLLBACK");
+                return error422("document type id is require", res);
+            }
+                let updateAdhaDocumentsDetailsQuery = `UPDATE Adha_documents SET document_type_id = ?, note = ? WHERE id= ? AND Adha_document_id= ?`;
+                let updateAdhaDocumentsDetailsValues = [document_type_id, note, adhaId, adha_document_id];
+                let updateAdhaDocumentsDetailsResult = await connection.query(updateAdhaDocumentsDetailsQuery, updateAdhaDocumentsDetailsValues);
+            if (!adha_document_id) {
+                let insertAdhaDocumentsDetailsQuery = 'INSERT INTO Adha_documents (id, document_type_id, note) VALUES (?,?,?)';
+                let insertAdhaDocumentsDetailsValues = [AdhaId, document_type_id, note];
+                let insertAdhaDocumentsDetailsResult = await connection.query(insertAdhaDocumentsDetailsQuery, insertAdhaDocumentsDetailsValues);
+            }
+        }
         // Commit the transaction
         await connection.commit();
 
@@ -414,6 +454,8 @@ const updateAdha = async (req, res) => {
             message: "Adha updated successfully.",
         });
     } catch (error) {
+        console.log(error);
+        
         return error500(error,res);
     }finally {
         if (connection) connection.release()

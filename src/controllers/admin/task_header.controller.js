@@ -120,7 +120,7 @@ const addTaskHeader = async (req, res) => {
 
 //Get Task Headers List...
 const getTaskHeaders = async (req, res) => {
-    const { page, perPage, key } = req.query;
+    const { page, perPage, key, userId } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
     try {
@@ -135,7 +135,7 @@ const getTaskHeaders = async (req, res) => {
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id`;
+        ON st.status_id = th.status_id WHERE 1`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
@@ -144,7 +144,7 @@ const getTaskHeaders = async (req, res) => {
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id`;
+        ON st.status_id = th.status_id WHERE 1`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
@@ -154,9 +154,13 @@ const getTaskHeaders = async (req, res) => {
                 getTaskHeaderQuery += ` AND status = 0`;
                 countQuery += ` AND status = 0`;
             } else {
-                getTaskHeaderQuery += ` AND  LOWER(customer_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(customer_name) LIKE '%${lowercaseKey}%' `;
+                getTaskHeaderQuery += ` AND  LOWER(th.customer_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND LOWER(th.customer_name) LIKE '%${lowercaseKey}%' `;
             }
+        }
+        if (userId) {
+            getTaskHeaderQuery += ` AND th.user_id = ${userId}`;
+            countQuery += `  AND th.user_id = ${userId}`;
         }
         getTaskHeaderQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
@@ -223,7 +227,7 @@ const getTaskHeader = async (req, res) => {
         const taskDocumentsQuery = `SELECT td.*,d.document_type FROM task_documents td 
         JOIN document_type d
         ON d.document_type_id = td.document_type_id
-        WHERE task_header_id = ?`;
+        WHERE td.task_header_id = ?`;
         const taskDocumentsResult = await connection.query(taskDocumentsQuery, [taskHeaderId]);
         taskHeader['taskDocumentsDetails'] = taskDocumentsResult[0];
 
