@@ -208,9 +208,8 @@ const getAdhas = async (req, res) => {
 
 // get adha report...
 const getAdhasReport = async (req, res) => {
-    const { page, perPage, key,fromDate,
-        toDate,service_id } = req.query;
-    const user_id = req.companyData.user_id;
+    const { page, perPage, key, fromDate, toDate, service_id, verify_status, payment_mode, user_id, current_date } = req.query;
+    
 
     
     // attempt to obtain a database connection
@@ -228,7 +227,7 @@ const getAdhasReport = async (req, res) => {
         ON s.service_id = a.service_id
         LEFT JOIN document_type d
         ON d.document_type_id = a.document_type_id
-        WHERE 1 AND a.user_id = ${user_id}`;
+        WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
         LEFT JOIN users u 
@@ -237,7 +236,7 @@ const getAdhasReport = async (req, res) => {
         ON s.service_id = a.service_id
         LEFT JOIN document_type d
         ON d.document_type_id = a.document_type_id
-        WHERE 1 AND a.user_id = ${user_id}`;
+        WHERE 1`;
  
         
         if (key) {
@@ -254,13 +253,29 @@ const getAdhasReport = async (req, res) => {
             }
         }
         if (fromDate && toDate) {
-            getAdhaQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
-            countQuery += ` AND a.created_at >= '${fromDate}' AND a.created_at <= '${toDate}'`;
-          }
-          if (service_id) {
+            getAdhaQuery += ` AND DATE(a.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+            countQuery += ` AND DATE(a.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+        }
+        if (service_id) {
             getAdhaQuery += ` AND a.service_id = '${service_id}'`;
             countQuery += ` AND a.service_id = '${service_id}'`;
-          }
+        }
+        if (verify_status) {
+            getAdhaQuery += ` AND a.verification_status = '${verify_status}'`;
+            countQuery += ` AND a.verification_status = '${verify_status}'`;
+        }
+        if (payment_mode) {
+            getAdhaQuery += ` AND a.payment_mode = '${payment_mode}'`;
+            countQuery += ` AND a.payment_mode = '${payment_mode}'`;
+        }
+        if (user_id) {
+            getAdhaQuery += ` AND a.user_id = '${user_id}'`;
+            countQuery += ` AND a.user_id = '${user_id}'`;
+        }
+        if (current_date) {
+            getAdhaQuery += ` AND DATE(a.created_at) = '${current_date}'`;
+            countQuery += ` AND DATE(a.created_at) = '${current_date}'`;
+        }
         getAdhaQuery += " ORDER BY a.created_at DESC";
 
         // Apply pagination if both page and perPage are provided

@@ -120,7 +120,7 @@ const addTaskHeader = async (req, res) => {
 
 //Get Task Headers List...
 const getTaskHeaders = async (req, res) => {
-    const { page, perPage, key, userId } = req.query;
+    const { page, perPage, key, user_id, current_date } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
     try {
@@ -158,10 +158,15 @@ const getTaskHeaders = async (req, res) => {
                 countQuery += ` AND LOWER(th.customer_name) LIKE '%${lowercaseKey}%' `;
             }
         }
-        if (userId) {
-            getTaskHeaderQuery += ` AND th.user_id = ${userId}`;
-            countQuery += `  AND th.user_id = ${userId}`;
+        if (user_id) {
+            getTaskHeaderQuery += ` AND th.user_id = ${user_id}`;
+            countQuery += `  AND th.user_id = ${user_id}`;
         }
+        if (current_date) {
+            getTaskHeaderQuery += ` AND DATE(th.created_at) = '${current_date}'`;
+            countQuery += ` AND DATE(th.created_at) = '${current_date}'`;
+        }
+
         getTaskHeaderQuery += " ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
@@ -435,7 +440,7 @@ const getTaskAssignedTo = async (req, res) => {
 
 //Report
 const getReport = async (req, res) => {
-    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id} = req.query;
+    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status} = req.query;
  
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -458,7 +463,8 @@ const getReport = async (req, res) => {
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id WHERE 1`;
+        ON st.status_id = th.status_id 
+        WHERE 1`;
 
         // from date and to date
         if (fromDate && toDate) {
@@ -478,6 +484,16 @@ const getReport = async (req, res) => {
         if (service_id) {
             getReportQuery += ` AND th.service_id = '${service_id}'`;
             countQuery += ` AND th.service_id = '${service_id}'`;
+        }
+
+        if (user_id) {
+            getReportQuery += ` AND th.user_id = '${user_id}'`;
+            countQuery += `  AND th.user_id = '${user_id}'`;
+        }
+
+        if (payment_status) {
+            getReportQuery += ` AND th.payment_status = '${payment_status}'`;
+            countQuery += `  AND th.payment_status = '${payment_status}'`;
         }
     
         // Apply pagination if both page and perPage are provided
