@@ -357,7 +357,7 @@ const updateTaskheader = async (req, res) => {
 
 // get Task list by assigned to...
 const getTaskAssignedTo = async (req, res) => {
-    const { page, perPage, key, statusId } = req.query;
+    const { page, perPage, key, statusId , current_date} = req.query;
     const assignedTo = parseInt(req.query.assignedTo);
     
     // Attempt to obtain a database connection
@@ -403,6 +403,10 @@ const getTaskAssignedTo = async (req, res) => {
         if (statusId) {
             taskAssignedToQuery += ` AND th.status_id = ${statusId}`;
             countQuery += `  AND th.status_id = ${statusId}`;
+        }
+        if (current_date) {
+            taskAssignedToQuery += ` AND DATE(th.created_at) = '${current_date}'`;
+            countQuery += ` AND DATE(th.created_at) = '${current_date}'`;
         }
         taskAssignedToQuery += " ORDER BY created_at DESC";
         
