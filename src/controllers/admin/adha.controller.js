@@ -34,6 +34,7 @@ const addAdha = async (req, res) => {
     const  enollment_time  = req.body.enollment_time  ? req.body.enollment_time  : '';
     const  service_id  = req.body.service_id  ? req.body.service_id : '';
     const  document_type_id  = req.body.document_type_id  ? req.body.document_type_id : '';
+    const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
     const  verification_status  = req.body.verification_status  ? req.body.verification_status  : '';
     const  payment_mode  = req.body.payment_mode  ? req.body.payment_mode : '';
     const  amount  = req.body.amount  ? req.body.amount  : '';
@@ -76,6 +77,13 @@ const addAdha = async (req, res) => {
        return error422(" Document Type Not Found.", res);
    }
 
+   //check work details already is exists or not
+   const isExistWorkDetailTypeQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
+   const isExistWorkDetailTypeResult = await pool.query(isExistWorkDetailTypeQuery, [work_details_id]);
+   if (isExistWorkDetailTypeResult[0].length === 0) {
+       return error422(" Work Details Not Found.", res);
+   }
+
     // attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -85,8 +93,8 @@ const addAdha = async (req, res) => {
         await connection.beginTransaction();
 
         //insert into adha 
-        const insertadhaQuery = `INSERT INTO adha (name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount,user_id ) VALUES (?,?,?,?,?,?,?,?,?,? ) `;
-        const insertadhaValues= [name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount,user_id];
+        const insertadhaQuery = `INSERT INTO adha (name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
+        const insertadhaValues= [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id];
         const adhaResult = await connection.query(insertadhaQuery, insertadhaValues);
         const id = adhaResult[0].insertId;
         //insert into documents in Array
@@ -128,13 +136,15 @@ const getAdhas = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details FROM adha a
         JOIN users u 
         ON u.user_id = a.user_id
         JOIN services s
         ON s.service_id = a.service_id
         JOIN document_type dt
         ON dt.document_type_id = a.document_type_id
+        JOIN work_details wd
+        ON wd.work_details_id = a.work_details_id
         WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
@@ -144,6 +154,8 @@ const getAdhas = async (req, res) => {
         ON s.service_id = a.service_id
         JOIN document_type dt
         ON dt.document_type_id = a.document_type_id
+        JOIN work_details wd
+        ON wd.work_details_id = a.work_details_id
         WHERE 1`; 
         
         if (key) {
@@ -331,14 +343,16 @@ const getAdha = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        const adhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type FROM adha a
+        const adhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details FROM adha a
         JOIN users u 
         ON u.user_id = a.user_id
         JOIN services s
         ON s.service_id = a.service_id
         JOIN document_type dt
         ON dt.document_type_id = a.document_type_id
-         WHERE a.id=? AND a.user_id=?`;
+        JOIN work_details wd
+        ON wd.work_details_id = a.work_details_id
+        WHERE a.id=? AND a.user_id=?`;
         const adhaResult = await connection.query(adhaQuery, [adhaId,user_id]);
         
         if (adhaResult[0].length == 0) {
@@ -375,6 +389,7 @@ const updateAdha = async (req, res) => {
     const enollment_time = req.body.enollment_time ? req.body.enollment_time : '';
     const service_id = req.body.service_id ? req.body.service_id : '';
     const document_type_id = req.body.document_type_id ? req.body.document_type_id : '';
+    const work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
     const verification_status = req.body.verification_status ? req.body.verification_status : '';
     const payment_mode = req.body.payment_mode ? req.body.payment_mode : '';
     const amount = req.body.amount ? req.body.amount : '';
@@ -437,9 +452,16 @@ const updateAdha = async (req, res) => {
             }
         }
 
+        //check work details already is exists or not
+            const isExistWorkDetailTypeQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
+            const isExistWorkDetailTypeResult = await pool.query(isExistWorkDetailTypeQuery, [work_details_id]);
+            if (isExistWorkDetailTypeResult[0].length === 0) {
+            return error422(" Work Details Not Found.", res);
+        }
+
         // Update the adha record with new data
-        const updateQuery = `UPDATE adha SET name = ?, mobile_number=?,enrollment_number=?,enollment_time=?,service_id=?,document_type_id=?,verification_status=?,payment_mode=?,amount=?, user_id = ? WHERE id = ?`;
-        await connection.query(updateQuery, [name,mobile_number,enrollment_number,enollment_time,service_id,document_type_id,verification_status,payment_mode,amount, user_id,adhaId]);
+        const updateQuery = `UPDATE adha SET name = ?, mobile_number = ?, enrollment_number = ?,enollment_time = ?, service_id = ?, document_type_id = ?, work_details_id = ?, verification_status = ?, payment_mode = ?, amount=?, user_id = ? WHERE id = ?`;
+        await connection.query(updateQuery, [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id, adhaId]);
 
         //update into adha documents
         let documentsArray = adhaDocumentsDetails
@@ -463,14 +485,11 @@ const updateAdha = async (req, res) => {
         }
         // Commit the transaction
         await connection.commit();
-
         return res.status(200).json({
             status: 200,
             message: "Adha updated successfully.",
         });
     } catch (error) {
-        console.log(error);
-        
         return error500(error,res);
     }finally {
         if (connection) connection.release()

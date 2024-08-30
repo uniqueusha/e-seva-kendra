@@ -47,14 +47,7 @@ const addTaskHeader = async (req, res) => {
         return error422("User ID is required.", res);
     }  else if (!work_details_id) {
         return error422("work_details is required.", res);
-    }   
-
-     //check Mobile Number already is exists or not
-     const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ?`;
-     const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number]);
-     if (isExistMobileNumberResult[0].length > 0) {
-         return error422(" Mobile Number is already exists.", res);
-     }  
+    } 
 
     //check service already is exists or not
     const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ? && status = 1`;
@@ -274,18 +267,11 @@ const updateTaskheader = async (req, res) => {
     }
 
     // Check if Task header exists
-    const taskHeaderQuery = "SELECT * FROM task_header WHERE task_header_id = ? AND user_id = ?";
-    const taskHeaderResult = await pool.query(taskHeaderQuery, [taskHeaderId, user_id]);
+    const taskHeaderQuery = "SELECT * FROM task_header WHERE task_header_id = ?";
+    const taskHeaderResult = await pool.query(taskHeaderQuery, [taskHeaderId]);
     if (taskHeaderResult[0].length === 0) {
         return error422("Task Header Not Found.", res);
     }
-    
-    //check Mobile Number already is exists or not
-    const isExistMobileNumberQuery = `SELECT * FROM task_header WHERE mobile_number = ? AND task_header_id != ?`;
-    const isExistMobileNumberResult = await pool.query(isExistMobileNumberQuery, [mobile_number,taskHeaderId]);
-    if (isExistMobileNumberResult[0].length > 0) {
-        return error422(" Mobile Number is already exists.", res);
-    } 
 
     //check service already is exists or not
     const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
