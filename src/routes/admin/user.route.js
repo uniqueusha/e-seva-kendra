@@ -9,6 +9,7 @@ router.post('/login',userController.userLogin);
 router.get('/status',userController.getStatusWma);
 router.get('/wma',userController.getUserWma);
 router.get('/employee',userController.getUserEmployee);
+router.get('/operator',userController.getOperatorList);
 router.get('/:id',userController.getUser);
 router.put('/:id',userController.updateUser);
 router.patch('/:id',userController.onStatusChange);
