@@ -448,7 +448,7 @@ const getStatusWma = async (req, res) => {
     try {
         // Start a transaction
         await connection.beginTransaction();
-        // Start a transaction
+        
         let statusQuery = `SELECT * FROM verification_status WHERE status = 1 ORDER BY verification_status_id`; 
         const statusResult = await connection.query(statusQuery);
         const status = statusResult[0];
@@ -467,6 +467,35 @@ const getStatusWma = async (req, res) => {
     }
 };
 
+//opoerator List
+const getOperatorList = async (req, res) => {
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        
+        let operatorQuery = `SELECT u.*,d.designation_name FROM users u
+        JOIN designations d
+        ON d.designation_id = u.designation_id
+        WHERE u.designation_id = 3 ORDER BY user_name`; 
+        const operatorResult = await connection.query(operatorQuery);
+        const operator = operatorResult[0];
+  
+        res.status(200).json({
+            status: 200,
+            message: "operator retrieved successfully.",
+            data: operator,
+      });
+    } catch (error) {
+        error500(error, res);
+    } finally {
+        if (connection) {
+            connection.release();
+      }
+    }
+};
 module.exports = {
     addUser,
     userLogin,
@@ -476,6 +505,7 @@ module.exports = {
     onStatusChange,
     getUserWma,
     getStatusWma,
-    getUserEmployee
+    getUserEmployee,
+    getOperatorList
 
 }
