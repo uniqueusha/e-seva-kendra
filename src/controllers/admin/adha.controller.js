@@ -142,28 +142,28 @@ const getAdhas = async (req, res) => {
         await connection.beginTransaction();
 
         let getAdhaQuery = `SELECT a.*, u.user_name, s.services, wd.work_details, vs.verification_status, ps.payment_status FROM adha a
-        JOIN users u 
+        LEFT JOIN users u 
         ON u.user_id = a.user_id
-        JOIN services s
+        LEFT JOIN services s
         ON s.service_id = a.service_id
-        JOIN work_details wd
+        LEFT JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
-        JOIN verification_status vs
+        LEFT JOIN verification_status vs
         ON vs.verification_status_id = a.verification_status_id
-        JOIN payment_status ps
+        LEFT JOIN payment_status ps
         ON ps.payment_status_id = a.payment_status_id
         WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
-        JOIN users u 
+        LEFT JOIN users u 
         ON u.user_id = a.user_id
-        JOIN services s
+        LEFT JOIN services s
         ON s.service_id = a.service_id
-        JOIN work_details wd
+        LEFT JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
-        JOIN verification_status vs
+        LEFT JOIN verification_status vs
         ON vs.verification_status_id = a.verification_status_id
-        JOIN payment_status ps
+        LEFT JOIN payment_status ps
         ON ps.payment_status_id = a.payment_status_id
         WHERE 1`; 
         
@@ -227,7 +227,7 @@ const getAdhas = async (req, res) => {
 
 // get adha report...
 const getAdhasReport = async (req, res) => {
-    const { page, perPage, key, fromDate, toDate, service_id, verification_status, payment_mode, user_id, current_date } = req.query;
+    const { page, perPage, key, fromDate, toDate, service_id, verification_status_id, payment_status_id, user_id, current_date } = req.query;
     
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -237,13 +237,11 @@ const getAdhasReport = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name,s.services, d.document_type FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name,s.services FROM adha a
         LEFT JOIN users u 
         ON u.user_id = a.user_id
         LEFT JOIN services s
         ON s.service_id = a.service_id
-        LEFT JOIN document_type d
-        ON d.document_type_id = a.document_type_id
         WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
@@ -251,8 +249,6 @@ const getAdhasReport = async (req, res) => {
         ON u.user_id = a.user_id
         LEFT JOIN services s
         ON s.service_id = a.service_id
-        LEFT JOIN document_type d
-        ON d.document_type_id = a.document_type_id
         WHERE 1`;
  
         
@@ -277,13 +273,13 @@ const getAdhasReport = async (req, res) => {
             getAdhaQuery += ` AND a.service_id = '${service_id}'`;
             countQuery += ` AND a.service_id = '${service_id}'`;
         }
-        if (verification_status) {
-            getAdhaQuery += ` AND a.verification_status = '${verification_status}'`;
-            countQuery += ` AND a.verification_status = '${verification_status}'`;
+        if (verification_status_id) {
+            getAdhaQuery += ` AND a.verification_status_id = '${verification_status_id}'`;
+            countQuery += ` AND a.verification_status_id = '${verification_status_id}'`;
         }
-        if (payment_mode) {
-            getAdhaQuery += ` AND a.payment_mode = '${payment_mode}'`;
-            countQuery += ` AND a.payment_mode = '${payment_mode}'`;
+        if (payment_status_id) {
+            getAdhaQuery += ` AND a.payment_status_id = '${payment_status_id}'`;
+            countQuery += ` AND a.payment_status_id = '${payment_status_id}'`;
         }
         if (user_id) {
             getAdhaQuery += ` AND a.user_id = '${user_id}'`;
