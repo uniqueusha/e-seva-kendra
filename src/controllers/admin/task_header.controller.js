@@ -32,7 +32,6 @@ const addTaskHeader = async (req, res) => {
     const  address  = req.body.address  ? req.body.address.trim() : '';
     const  service_id  = req.body.service_id  ? req.body.service_id : '';
     const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
-    const  document_type_id  = req.body.document_type_id  ? req.body.document_type_id : '';
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to  : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim()  : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
@@ -78,8 +77,8 @@ const addTaskHeader = async (req, res) => {
          //Start the transaction
          await connection.beginTransaction();
         //insert into Task Header
-        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
-        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id];
+        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id) VALUES ( ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
+        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id];
         const taskHeaderResult = await connection.query(insertTaskHeaderQuery, insertTaskHeaderValues);
         const task_header_id = taskHeaderResult[0].insertId;
        
@@ -249,7 +248,6 @@ const updateTaskheader = async (req, res) => {
     const  address  = req.body.address  ? req.body.address.trim() : '';
     const  service_id  = req.body.service_id  ? req.body.service_id : '';
     const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
-    const  document_type_id  = req.body.document_type_id  ? req.body.document_type_id : '';
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim() : '';
     const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
@@ -304,8 +302,8 @@ const updateTaskheader = async (req, res) => {
         await connection.beginTransaction();
 
         // Update Task Heater
-        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, document_type_id = ?,assigned_to = ?, due_date = ?, payment_status = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
-        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, document_type_id, assigned_to, due_date, payment_status, status_id, task_note, user_id, taskHeaderId]);
+        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, assigned_to = ?, due_date = ?, payment_status = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
+        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id, taskHeaderId]);
         
         //update into task documents
         let documentsArray = taskDocumentsDetails
