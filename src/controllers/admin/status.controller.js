@@ -179,7 +179,7 @@ const updateStatus = async (req, res) => {
         await connection.beginTransaction();
 
         // Check if status exists
-        const statusQuery = "SELECT * FROM status WHERE status_id  = ? && user_id";
+        const statusQuery = "SELECT * FROM status WHERE status_id  = ? && user_id = ?";
         const statusResult = await connection.query(statusQuery, [statusId, user_id]);
         if (statusResult[0].length == 0) {
             return error422("Status Not Found.", res);

@@ -35,9 +35,10 @@ const addAdha = async (req, res) => {
     const  service_id  = req.body.service_id  ? req.body.service_id : '';
     const  document_type_id  = req.body.document_type_id  ? req.body.document_type_id : '';
     const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
-    const  verification_status  = req.body.verification_status  ? req.body.verification_status  : '';
-    const  payment_mode  = req.body.payment_mode  ? req.body.payment_mode : '';
+    const  verification_status_id  = req.body.verification_status_id  ? req.body.verification_status_id  : '';
+    const  payment_status_id  = req.body.payment_status_id  ? req.body.payment_status_id : '';
     const  amount  = req.body.amount  ? req.body.amount  : '';
+    const  employee_id  = req.body.employee_id  ? req.body.employee_id : '';
     const  adhaDocumentsDetails = req.body.adhaDocumentsDetails ? req.body.adhaDocumentsDetails : [];
     const  user_id  =req.companyData.user_id;
 
@@ -53,10 +54,10 @@ const addAdha = async (req, res) => {
         return error422("Service id is required.", res);
     }if (!document_type_id) {
         return error422("Document type id is required.", res);
-    }if (!verification_status) {
-        return error422("Verification status is required.", res);
-    }if (!payment_mode) {
-        return error422("Payment mode is required.", res);
+    }if (!verification_status_id) {
+        return error422("Verification status  id is required.", res);
+    }if (!payment_status_id) {
+        return error422("Payment status id is required.", res);
     }if (!amount) {
         return error422("Amount is required.", res);
     }else if (!user_id) {
@@ -78,12 +79,26 @@ const addAdha = async (req, res) => {
    }
 
    //check work details already is exists or not
-   const isExistWorkDetailTypeQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
+   const PaymentStatusisExistWorkDetailTypeQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
    const isExistWorkDetailTypeResult = await pool.query(isExistWorkDetailTypeQuery, [work_details_id]);
    if (isExistWorkDetailTypeResult[0].length === 0) {
        return error422(" Work Details Not Found.", res);
    }
 
+   //check verification status already is exists or not
+   const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
+   const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
+   if (isExistVerificationStatusResult[0].length === 0) {
+       return error422(" Work Details Not Found.", res);
+   }
+
+   //check payment status already is exists or not
+   const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
+   const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
+   if (isExistPaymentStatusResult[0].length === 0) {
+       return error422(" Work Details Not Found.", res);
+   }
+   
     // attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -93,8 +108,8 @@ const addAdha = async (req, res) => {
         await connection.beginTransaction();
 
         //insert into adha 
-        const insertadhaQuery = `INSERT INTO adha (name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
-        const insertadhaValues= [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id];
+        const insertadhaQuery = `INSERT INTO adha (name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status_id, payment_status_id, amount, user_id, employee_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+        const insertadhaValues= [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status_id, payment_status_id, amount, user_id, employee_id];
         const adhaResult = await connection.query(insertadhaQuery, insertadhaValues);
         const id = adhaResult[0].insertId;
         //insert into documents in Array
@@ -136,7 +151,7 @@ const getAdhas = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details, vs.verification_status, ps.payment_status FROM adha a
         JOIN users u 
         ON u.user_id = a.user_id
         JOIN services s
@@ -145,6 +160,10 @@ const getAdhas = async (req, res) => {
         ON dt.document_type_id = a.document_type_id
         JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
+        JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
         WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
@@ -156,6 +175,10 @@ const getAdhas = async (req, res) => {
         ON dt.document_type_id = a.document_type_id
         JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
+        JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
         WHERE 1`; 
         
         if (key) {
@@ -221,8 +244,6 @@ const getAdhas = async (req, res) => {
 // get adha report...
 const getAdhasReport = async (req, res) => {
     const { page, perPage, key, fromDate, toDate, service_id, verification_status, payment_mode, user_id, current_date } = req.query;
-    
-
     
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -329,11 +350,10 @@ const getAdhasReport = async (req, res) => {
 
 }
 
-
 // get adha  by id...
 const getAdha = async (req, res) => {
     const adhaId = parseInt(req.params.id);
-    const user_id=req.companyData.user_id;
+    const user_id = req.companyData.user_id;
 
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -343,7 +363,7 @@ const getAdha = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        const adhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details FROM adha a
+        const adhaQuery = `SELECT a.*, u.user_name, s.services, dt.document_type, wd.work_details,vs.verification_status, ps.payment_status FROM adha a
         JOIN users u 
         ON u.user_id = a.user_id
         JOIN services s
@@ -352,8 +372,12 @@ const getAdha = async (req, res) => {
         ON dt.document_type_id = a.document_type_id
         JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
-        WHERE a.id=? AND a.user_id=?`;
-        const adhaResult = await connection.query(adhaQuery, [adhaId,user_id]);
+        JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
+        WHERE a.id=?`;
+        const adhaResult = await connection.query(adhaQuery, [adhaId]);
         
         if (adhaResult[0].length == 0) {
             return error422("Adha Not Found.", res);
@@ -383,16 +407,17 @@ const getAdha = async (req, res) => {
 //adha  update...
 const updateAdha = async (req, res) => {
     const adhaId = parseInt(req.params.id);
-    const  name  = req.body.name  ? req.body.name.trim() : '';
+    const name  = req.body.name  ? req.body.name.trim() : '';
     const mobile_number = req.body.mobile_number ? req.body.mobile_number : '';
     const enrollment_number = req.body.enrollment_number ? req.body.enrollment_number : '';
     const enollment_time = req.body.enollment_time ? req.body.enollment_time : '';
     const service_id = req.body.service_id ? req.body.service_id : '';
     const document_type_id = req.body.document_type_id ? req.body.document_type_id : '';
     const work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
-    const verification_status = req.body.verification_status ? req.body.verification_status : '';
-    const payment_mode = req.body.payment_mode ? req.body.payment_mode : '';
+    const verification_status_id = req.body.verification_status_id ? req.body.verification_status_id : '';
+    const payment_status_id = req.body.payment_status_id ? req.body.payment_status_id : '';
     const amount = req.body.amount ? req.body.amount : '';
+    const employee_id  = req.body.employee_id  ? req.body.employee_id : '';
     const adhaDocumentsDetails = req.body.adhaDocumentsDetails ? req.body.adhaDocumentsDetails : [];
     const user_id = req.companyData.user_id;
 
@@ -412,13 +437,27 @@ const updateAdha = async (req, res) => {
         return error422("Service id is required.", res);
     }else if (!document_type_id) {
         return error422("Document type id is required.", res);
-    }else if (!verification_status) {
-        return error422("Verification status is required.", res);
-    }else if (!payment_mode) {
-        return error422("Payment mode is required.", res);
+    }else if (!verification_status_id) {
+        return error422("Verification status id is required.", res);
+    }else if (!payment_status_id) {
+        return error422("Payment status id is required.", res);
     }else if (!amount) {
         return error422("Amount is required.", res);
     }
+
+    //check verification status already is exists or not
+   const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
+   const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
+   if (isExistVerificationStatusResult[0].length === 0) {
+       return error422(" Work Details Not Found.", res);
+   }
+
+   //check payment status already is exists or not
+   const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
+   const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
+   if (isExistPaymentStatusResult[0].length === 0) {
+       return error422(" Work Details Not Found.", res);
+   }
 
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -445,7 +484,7 @@ const updateAdha = async (req, res) => {
         }
         if(document_type_id){
             //check if check document_type_id_id exists
-            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id=?";
+            const isExistDocumentTypeQuery="SELECT * FROM document_type WHERE document_type_id = ?";
             const DocumentTypeResult=await connection.query(isExistDocumentTypeQuery,[document_type_id]);
             if(DocumentTypeResult[0].length==0){
                 return error422("document type Not Found",res);
@@ -460,8 +499,8 @@ const updateAdha = async (req, res) => {
         }
 
         // Update the adha record with new data
-        const updateQuery = `UPDATE adha SET name = ?, mobile_number = ?, enrollment_number = ?,enollment_time = ?, service_id = ?, document_type_id = ?, work_details_id = ?, verification_status = ?, payment_mode = ?, amount=?, user_id = ? WHERE id = ?`;
-        await connection.query(updateQuery, [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status, payment_mode, amount, user_id, adhaId]);
+        const updateQuery = `UPDATE adha SET name = ?, mobile_number = ?, enrollment_number = ?,enollment_time = ?, service_id = ?, document_type_id = ?, work_details_id = ?, verification_status_id = ?, payment_status_id = ?, amount=?, user_id = ? WHERE id = ?`;
+        await connection.query(updateQuery, [name, mobile_number, enrollment_number, enollment_time, service_id, document_type_id, work_details_id, verification_status_id, payment_status_id, amount, user_id, adhaId]);
 
         //update into adha documents
         let documentsArray = adhaDocumentsDetails
@@ -496,10 +535,61 @@ const updateAdha = async (req, res) => {
     }
 }
 
+//update verification status
+const verificationStatusChange = async (req, res) => {
+    const adhaId = parseInt(req.params.id);
+    const verification_status_id = req.body.verification_status_id ? req.body.verification_status_id : '';
+    const employee_id  = req.body.employee_id  ? req.body.employee_id : '';
+    if (!verification_status_id) {
+        return error422(" Verification Status is required.", res);
+    } else if (!employee_id) {
+        return error422("employee  is required.", res);
+    } 
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        // Check if the verification status exists
+        const verificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
+        const verificationStatusResult = await connection.query(verificationStatusQuery, [verification_status_id]);
+        if (verificationStatusResult[0].length === 0) {
+            return error422("verification Status not found.", res);
+        }
+         
+        const verificationStatus = verificationStatusResult[0][0].verification_status;
+
+        //check Employee already is exists or not
+        const isExistEmployeeQuery = `SELECT * FROM users WHERE user_id = ? `;
+        const isExistEmployeeResult = await pool.query(isExistEmployeeQuery, [employee_id]);
+        if (isExistEmployeeResult[0].length === 0) {
+            return error422("Employee not found.", res);
+        }
+  
+        // update the verification status
+        const updateVerificationStatusQuery = `UPDATE adha SET verification_status_id = ?, employee_id = ? WHERE id = ?`;
+        await connection.query(updateVerificationStatusQuery, [verification_status_id, employee_id, adhaId]);
+
+        //commit the transation
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: `Verification Status ${verificationStatus} successfully.`,
+        });
+    } catch (error) {
+        return error500(error, res);
+    } finally {
+        await connection.release();
+    }
+};
+
+
 module.exports = {
         addAdha,
         getAdhas,
         getAdha,
         updateAdha,
-        getAdhasReport
+        getAdhasReport,
+        verificationStatusChange
 }
