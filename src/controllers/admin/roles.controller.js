@@ -18,13 +18,13 @@ error422 = (message, res) => {
 }
 
 //error 500 handler...
-error500 = (error, res) => {
+error500 = (err, res) => {
     return res.status(500).json({
-        status: 500,
-        message: "Internal Server Error",
-        error: error
+      status: 500,
+      message: "Internal Server Error",
+      error: err
     });
-}
+};
 
 // add role...
 const addRole = async (req, res) => {
