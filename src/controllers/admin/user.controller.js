@@ -1,6 +1,7 @@
 const pool = require("../../../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
 // Function to obtain a database connection
 const getConnection = async () => {
     try {
@@ -139,8 +140,8 @@ const userLogin = async (req, res) => {
         LEFT JOIN contrasena c
         ON c.user_id =u.user_id
         LEFT JOIN designations d
-        ON d.user_id = u.user_id 
-        WHERE u.user_id = ? `;
+        ON d.designation_id = u.designation_id
+        WHERE u.user_id = ?`;
         let userDataResult = await connection.query(userDataQuery, [check_user.user_id]);
 
         // Commit the transaction
@@ -154,8 +155,6 @@ const userLogin = async (req, res) => {
         });
 
     } catch (error) {
-        //Handle errors
-        // await query("ROLLBACK");
         return error500(error, res)
     } finally {
         await connection.release();
@@ -183,14 +182,14 @@ const getUsers = async (req, res) => {
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getUserQuery += ` WHERE status = 1`;
-                countQuery += ` WHERE status = 1`;
+                getUserQuery += ` WHERE u.status = 1`;
+                countQuery += ` WHERE u.status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getUserQuery += ` WHERE status = 0`;
-                countQuery += ` WHERE status = 0`;
+                getUserQuery += ` WHERE u.status = 0`;
+                countQuery += ` WHERE u.status = 0`;
             } else {
-                getUserQuery += ` WHERE  LOWER(user_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` WHERE LOWER(user_name) LIKE '%${lowercaseKey}%' `;
+                getUserQuery += ` WHERE  LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` WHERE LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
             }
         }
         getUserQuery += " ORDER BY created_at DESC";
@@ -382,7 +381,7 @@ const onStatusChange = async (req, res) => {
     }
 };
 //get user active...
-const getUserWma = async (req, res, next) => {
+const getUserWma = async (req, res) => {
     
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -467,7 +466,7 @@ const getStatusWma = async (req, res) => {
     }
 };
 
-//opoerator List
+//operator List
 const getOperatorList = async (req, res) => {
     // Attempt to obtain a database connection
     let connection = await getConnection();
