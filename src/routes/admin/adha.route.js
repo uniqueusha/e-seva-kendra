@@ -9,6 +9,7 @@ router.get('/',checkAuth,adhaController.getAdhas);
 router.get('/report',checkAuth,adhaController.getAdhasReport);
 router.get('/:id',checkAuth,adhaController.getAdha);
 router.put('/:id',checkAuth,adhaController.updateAdha);
+router.patch('/:id',adhaController.verificationStatusChange)
 
 
 module.exports = router
