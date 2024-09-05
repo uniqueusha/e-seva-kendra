@@ -34,7 +34,7 @@ const addTaskHeader = async (req, res) => {
     const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to  : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim()  : '';
-    const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  payment_status_id  = req.body.payment_status_id  ? req.body.payment_status_id : '';
     const  status_id  = req.body.status_id  ? req.body.status_id : '';
     const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
@@ -55,7 +55,7 @@ const addTaskHeader = async (req, res) => {
         return error422("Service not Found.", res);
     }
 
-    //check work details already is exists or not
+    //check work details is exists or not
     const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ? && status = 1`;
     const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id]);
     if (isExistWorkDetailsResult[0].length === 0) {
@@ -63,11 +63,18 @@ const addTaskHeader = async (req, res) => {
     }
 
 
-    //check assigned to already is exists or not
+    //check assigned to is exists or not
     const isExistAssignedQuery = `SELECT * FROM users WHERE user_id = ? `;
     const isExistAssignedResult = await pool.query(isExistAssignedQuery, [assigned_to]);
     if (isExistAssignedResult[0].length === 0) {
         return error422("Assigned to  not found.", res);
+    }
+
+    //check payment status already is exists or not
+    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ? `;
+    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
+    if (isExistPaymentStatusResult[0].length === 0) {
+        return error422("Payment Sataus not found.", res);
     }
 
 
@@ -77,8 +84,8 @@ const addTaskHeader = async (req, res) => {
          //Start the transaction
          await connection.beginTransaction();
         //insert into Task Header
-        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id) VALUES ( ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
-        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id];
+        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id) VALUES ( ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
+        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id];
         const taskHeaderResult = await connection.query(insertTaskHeaderQuery, insertTaskHeaderValues);
         const task_header_id = taskHeaderResult[0].insertId;
        
@@ -119,7 +126,7 @@ const getTaskHeaders = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
+        let getTaskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name,ps.payment_status FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
@@ -127,7 +134,9 @@ const getTaskHeaders = async (req, res) => {
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id WHERE 1`;
+        ON st.status_id = th.status_id 
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
@@ -136,7 +145,9 @@ const getTaskHeaders = async (req, res) => {
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id WHERE 1`;
+        ON st.status_id = th.status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
@@ -205,7 +216,7 @@ const getTaskHeader = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
+        const taskHeaderQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name,ps.payment_status FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
@@ -214,6 +225,8 @@ const getTaskHeader = async (req, res) => {
         ON u.user_id = th.assigned_to
         JOIN status st
         ON st.status_id = th.status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id
         WHERE th.task_header_id = ?`;
         const taskHeaderResult = await connection.query(taskHeaderQuery, [taskHeaderId]);
         if (taskHeaderResult[0].length == 0) {
@@ -250,7 +263,7 @@ const updateTaskheader = async (req, res) => {
     const  work_details_id  = req.body.work_details_id  ? req.body.work_details_id : '';
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim() : '';
-    const  payment_status  = req.body.payment_status  ? req.body.payment_status.trim()  : '';
+    const  payment_status_id  = req.body.payment_status_id  ? req.body.payment_status_id : '';
     const  status_id  = req.body.status_id  ? req.body.status_id : '';
     const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
@@ -271,23 +284,28 @@ const updateTaskheader = async (req, res) => {
         return error422("Task Header Not Found.", res);
     }
 
-    //check service already is exists or not
+    //check service is exists or not
     const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
     const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id]);
     if (isExistServiceResult[0].length === 0) {
         return error422("Service not Found.", res);
     }
 
-    //check work details already is exists or not
+    //check work details is exists or not
     const isExistWorkDetailsQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
     const isExistWorkDetailsResult = await pool.query(isExistWorkDetailsQuery, [work_details_id]);
     if (isExistWorkDetailsResult[0].length === 0) {
         return error422(" work detail Not Found.", res);
     }
 
-    
+    //check payment status is exists or not
+    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ? `;
+    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
+    if (isExistPaymentStatusResult[0].length === 0) {
+        return error422("Payment Sataus not found.", res);
+    }
 
-    //check assigned to already is exists or not
+    //check assigned to is exists or not
     const isExistAssignedQuery = `SELECT * FROM users WHERE user_id = ? `;
     const isExistAssignedResult = await pool.query(isExistAssignedQuery, [assigned_to]);
     if (isExistAssignedResult[0].length === 0) {
@@ -302,8 +320,8 @@ const updateTaskheader = async (req, res) => {
         await connection.beginTransaction();
 
         // Update Task Heater
-        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, assigned_to = ?, due_date = ?, payment_status = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
-        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status, status_id, task_note, user_id, taskHeaderId]);
+        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, assigned_to = ?, due_date = ?, payment_status_id = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
+        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id, taskHeaderId]);
         
         //update into task documents
         let documentsArray = taskDocumentsDetails
@@ -351,7 +369,7 @@ const getTaskAssignedTo = async (req, res) => {
         // Start a transaction
         await connection.beginTransaction();
 
-        let taskAssignedToQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name FROM task_header th
+        let taskAssignedToQuery = `SELECT th.*,s.services,wd.work_details,u.user_name,st.status_name,ps.payment_status FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN work_details wd
@@ -360,6 +378,8 @@ const getTaskAssignedTo = async (req, res) => {
         ON u.user_id = th.assigned_to
         JOIN status st
         ON st.status_id = th.status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id
         WHERE assigned_to = ${assignedTo}`;
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
         JOIN services s
@@ -370,6 +390,8 @@ const getTaskAssignedTo = async (req, res) => {
         ON u.user_id = th.assigned_to
         JOIN status st
         ON st.status_id = th.status_id
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id
         WHERE assigned_to = ${assignedTo}`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
@@ -428,7 +450,7 @@ const getTaskAssignedTo = async (req, res) => {
 
 //Report
 const getReport = async (req, res) => {
-    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status} = req.query;
+    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status_id} = req.query;
  
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -436,13 +458,15 @@ const getReport = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getReportQuery = `SELECT th.*, s.services, u.user_name, st.status_name FROM task_header th
+        let getReportQuery = `SELECT th.*, s.services, u.user_name, st.status_name, ps.payment_status FROM task_header th
         JOIN services s
         ON s.service_id = th.service_id
         JOIN users u
         ON u.user_id = th.assigned_to
         JOIN status st
-        ON st.status_id = th.status_id WHERE 1`;
+        ON st.status_id = th.status_id 
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         
         
         let countQuery = `SELECT COUNT(*) AS total FROM task_header th
@@ -452,7 +476,9 @@ const getReport = async (req, res) => {
         ON u.user_id = th.assigned_to
         JOIN status st
         ON st.status_id = th.status_id 
-        WHERE 1`;
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id WHERE 1`;
+        
 
         // from date and to date
         if (fromDate && toDate) {
@@ -479,9 +505,9 @@ const getReport = async (req, res) => {
             countQuery += `  AND th.user_id = '${user_id}'`;
         }
 
-        if (payment_status) {
-            getReportQuery += ` AND th.payment_status = '${payment_status}'`;
-            countQuery += `  AND th.payment_status = '${payment_status}'`;
+        if (payment_status_id) {
+            getReportQuery += ` AND th.payment_status_id = '${payment_status_id}'`;
+            countQuery += `  AND th.payment_status_id = '${payment_status_id}'`;
         }
     
         // Apply pagination if both page and perPage are provided
