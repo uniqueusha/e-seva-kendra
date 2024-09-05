@@ -491,7 +491,7 @@ const updateAdha = async (req, res) => {
                 let updateAdhaDocumentsDetailsResult = await connection.query(updateAdhaDocumentsDetailsQuery, updateAdhaDocumentsDetailsValues);
             if (!adha_document_id) {
                 let insertAdhaDocumentsDetailsQuery = 'INSERT INTO Adha_documents (id, document_type_id, note) VALUES (?,?,?)';
-                let insertAdhaDocumentsDetailsValues = [AdhaId, document_type_id, note];
+                let insertAdhaDocumentsDetailsValues = [adhaId, document_type_id, note];
                 let insertAdhaDocumentsDetailsResult = await connection.query(insertAdhaDocumentsDetailsQuery, insertAdhaDocumentsDetailsValues);
             }
         }
