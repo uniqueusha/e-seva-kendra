@@ -16,13 +16,13 @@ error422 = (message, res) => {
     });
 }
 //error 500 handler...
-error500 = (error, res) => {
-     res.send({
-        status: 500,
-        message: "Internal Server Error",
-        error: error
+error500 = (err, res) => {
+    return res.status(500).json({
+      status: 500,
+      message: "Internal Server Error",
+      error: err
     });
-}
+};
 
 //Add User Role
 const addUserRole = async (req, res) => {

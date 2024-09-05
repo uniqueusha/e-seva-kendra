@@ -237,11 +237,15 @@ const getAdhasReport = async (req, res) => {
         //start a transaction
         await connection.beginTransaction();
 
-        let getAdhaQuery = `SELECT a.*, u.user_name,s.services FROM adha a
+        let getAdhaQuery = `SELECT a.*, u.user_name,s.services,vs.verification_status,ps.payment_status FROM adha a
         LEFT JOIN users u 
         ON u.user_id = a.user_id
         LEFT JOIN services s
         ON s.service_id = a.service_id
+        LEFT JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        LEFT JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
         WHERE 1 `;
 
         let countQuery = `SELECT COUNT(*) AS total FROM adha a
@@ -249,6 +253,10 @@ const getAdhasReport = async (req, res) => {
         ON u.user_id = a.user_id
         LEFT JOIN services s
         ON s.service_id = a.service_id
+        LEFT JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        LEFT JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
         WHERE 1`;
  
         

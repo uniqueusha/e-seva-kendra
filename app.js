@@ -21,7 +21,8 @@ const workDetailsRoute = require("./src/routes/admin/work_details.route");
 const adhaRoute = require("./src/routes/admin/adha.route");
 const taskFooterRoute = require("./src/routes/admin/task_footer.route");
 const paymentStatusRoute = require("./src/routes/admin/payment_status.route");
-
+const taskDashboard = require("./src/routes/admin/task_dashboard.route");
+const adhaDashboard = require("./src/routes/admin/adha_dashboard.route");
 
 
 
@@ -53,6 +54,8 @@ app.use('/api/workDetails',workDetailsRoute);
 app.use('/api/adha',adhaRoute);
 app.use('/api/taskFooter',taskFooterRoute);
 app.use('/api/paymentStatus',paymentStatusRoute);
+app.use('/api/taskDashboard',taskDashboard);
+app.use('/api/adhaDashboard',adhaDashboard);
 
 
 module.exports = app;
