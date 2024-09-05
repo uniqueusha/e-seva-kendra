@@ -374,7 +374,7 @@ const getAdha = async (req, res) => {
         ON d.document_type_id = ad.document_type_id
         WHERE ad.id = ?`;
         const adhaDocumentsResult = await connection.query(adhaDocumentsQuery, [adhaId]);
-        adha['ashaDocumentsDetails'] = adhaDocumentsResult[0];
+        adha['adhaDocumentsDetails'] = adhaDocumentsResult[0];
 
         return res.status(200).json({
             status: 200,
