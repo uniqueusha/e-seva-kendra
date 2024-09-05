@@ -28,7 +28,7 @@ error500 = (error, res) => {
  
 //getStatusCount
 const getStatusCount = async (req, res) => {
-    const { created_at } = req.query;
+    const { created_at,assignedTo } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -44,7 +44,7 @@ const getStatusCount = async (req, res) => {
             JOIN status s
             ON s.status_id = th.status_id
             WHERE Date(th.created_at) = ?`;
-        let todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
+        const todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
         task_status_total_list_count = parseInt(todayTotalStatusCountResult[0][0].total);
         
         let specificStatusCountQuery = `
@@ -54,10 +54,15 @@ const getStatusCount = async (req, res) => {
             ON s.status_id = th.status_id
             WHERE Date(th.created_at) = ?
             GROUP BY s.status_name`;
-        let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
+        const specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
         specificStatusCountResult[0].forEach(row => {
             status_counts[row.status_name] = parseInt(row.total);
         });
+        
+        if (assignedTo) {
+            todayTotalStatusCountQuery += ` AND th.assigned_to = '${assignedTo}'`;
+            specificStatusCountQuery += ` AND th.assigned_to = '${assignedTo}'`;
+        }
         
         const data = {
             status: 200,
