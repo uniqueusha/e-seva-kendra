@@ -131,7 +131,7 @@ const addAdha = async (req, res) => {
 
 // get adha list...
 const getAdhas = async (req, res) => {
-    const { page, perPage, key, userId } = req.query;
+    const { page, perPage, key, userId, current_date } = req.query;
     
     // attempt to obtain a database connection
     let connection = await getConnection();
@@ -183,6 +183,10 @@ const getAdhas = async (req, res) => {
         if (userId) {
             getAdhaQuery += ` AND a.user_id = ${userId}`;
             countQuery += `  AND a.user_id = ${userId}`;
+        }
+        if (current_date) {
+            getAdhaQuery += ` AND DATE(a.created_at) = '${current_date}'`;
+            countQuery += ` AND DATE(a.created_at) = '${current_date}'`;
         }
         getAdhaQuery += " ORDER BY a.created_at DESC";
 
