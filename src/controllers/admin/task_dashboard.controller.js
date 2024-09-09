@@ -28,7 +28,7 @@ error500 = (error, res) => {
  
 //getStatusCount
 const getStatusCount = async (req, res) => {
-    const { created_at, user_id } = req.query;
+    const { created_at, user_id, assigned_to } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -47,6 +47,9 @@ const getStatusCount = async (req, res) => {
             if (user_id) {
                 todayTotalStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
+            if (assigned_to) {
+                todayTotalStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
         let todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
         task_status_total_list_count = parseInt(todayTotalStatusCountResult[0][0].total);
         
@@ -59,6 +62,10 @@ const getStatusCount = async (req, res) => {
             if (user_id) {
                 specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             }
+            if (assigned_to) {
+                specificStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
+
             specificStatusCountQuery += `GROUP BY s.status_id, s.status_name`;
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
         
@@ -96,7 +103,7 @@ const getStatusCount = async (req, res) => {
 
 //getPaymentStatusCount
 const getPaymentStatusCount = async (req, res) => {
-    const { created_at, user_id } = req.query;
+    const { created_at, user_id, assigned_to } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -115,6 +122,9 @@ const getPaymentStatusCount = async (req, res) => {
             if (user_id) {
                 todayTotalPaymentStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
+            if (assigned_to) {
+                todayTotalPaymentStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
         let todayTotalPaymentStatusCountResult = await connection.query(todayTotalPaymentStatusCountQuery,[created_at]);
         task_payment_status_total_list_count = parseInt(todayTotalPaymentStatusCountResult[0][0].total);
         
@@ -127,6 +137,9 @@ const getPaymentStatusCount = async (req, res) => {
             if (user_id) {
                 specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
+            if (assigned_to) {
+                specificStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
             specificStatusCountQuery += `GROUP BY ps.payment_status_id,ps.payment_status`
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
 
