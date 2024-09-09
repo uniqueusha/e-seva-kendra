@@ -28,7 +28,7 @@ error500 = (error, res) => {
  
 //getStatusCount
 const getStatusCount = async (req, res) => {
-    const { created_at,assignedTo } = req.query;
+    const { created_at, user_id } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -37,32 +37,47 @@ const getStatusCount = async (req, res) => {
         await connection.beginTransaction();
         
         let task_status_total_list_count = 0;
-        let status_counts = {};
+        let status_counts = [];
         
         // today total status count
-        let todayTotalStatusCountQuery = `SELECT COUNT(*) AS total FROM task_header th
-            JOIN status s
+        let todayTotalStatusCountQuery = `SELECT COUNT(*) AS total FROM status s
+            JOIN task_header th
             ON s.status_id = th.status_id
             WHERE Date(th.created_at) = ?`;
-        const todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
+            if (user_id) {
+                todayTotalStatusCountQuery += ` AND th.user_id = '${user_id}'`;
+            } 
+        let todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
         task_status_total_list_count = parseInt(todayTotalStatusCountResult[0][0].total);
         
         let specificStatusCountQuery = `
             SELECT th.status_id,s.status_name, COUNT(*) AS total
-            FROM task_header th
-            JOIN status s
+            FROM status s
+            JOIN task_header th
             ON s.status_id = th.status_id
-            WHERE Date(th.created_at) = ?
-            GROUP BY s.status_name`;
-        const specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
-        specificStatusCountResult[0].forEach(row => {
-            status_counts[row.status_name] = parseInt(row.total);
-        });
+            WHERE Date(th.created_at) = ?`;
+            if (user_id) {
+                specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
+            }
+            specificStatusCountQuery += `GROUP BY s.status_id, s.status_name`;
+        let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
         
-        if (assignedTo) {
-            todayTotalStatusCountQuery += ` AND th.assigned_to = '${assignedTo}'`;
-            specificStatusCountQuery += ` AND th.assigned_to = '${assignedTo}'`;
-        }
+        const statusCount = {};
+        specificStatusCountResult[0].forEach(row => {
+            statusCount[row.status_id] = parseInt(row.total);
+        });
+
+        //get all status
+        let allStatusesQuery = `SELECT status_id, status_name FROM status`;
+        let allStatusesResult = await connection.query(allStatusesQuery);
+
+        allStatusesResult[0].forEach(rows => {
+            status_counts.push({
+                status_id: rows.status_id,
+                status_name: rows.status_name,
+                status_total: statusCount[rows.status_id] ||0
+            })
+        });
         
         const data = {
             status: 200,
@@ -73,7 +88,6 @@ const getStatusCount = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
-        console.log(error);
         return error500(error, res);
     } finally {
         await connection.release();
@@ -82,7 +96,7 @@ const getStatusCount = async (req, res) => {
 
 //getPaymentStatusCount
 const getPaymentStatusCount = async (req, res) => {
-    const { created_at } = req.query;
+    const { created_at, user_id } = req.query;
     // Attempt to obtain a database connection
     let connection = await getConnection();
 
@@ -91,26 +105,46 @@ const getPaymentStatusCount = async (req, res) => {
         await connection.beginTransaction();
         
         let task_payment_status_total_list_count = 0;
-        let payment_status_counts = {};
+        let payment_status_counts = [];
         
         // today total status count
-        let todayTotalPaymentStatusCountQuery = `SELECT COUNT(*) AS total FROM task_header th
-            JOIN payment_status ps
+        let todayTotalPaymentStatusCountQuery = `SELECT COUNT(*) AS total FROM payment_status ps 
+            JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
             WHERE Date(th.created_at) = ?`;
+            if (user_id) {
+                todayTotalPaymentStatusCountQuery += ` AND th.user_id = '${user_id}'`;
+            } 
         let todayTotalPaymentStatusCountResult = await connection.query(todayTotalPaymentStatusCountQuery,[created_at]);
         task_payment_status_total_list_count = parseInt(todayTotalPaymentStatusCountResult[0][0].total);
         
         let specificStatusCountQuery = `
-            SELECT th.status_id,ps.payment_status, COUNT(*) AS total
-            FROM task_header th
-            JOIN payment_status ps
+            SELECT th.payment_status_id,ps.payment_status, COUNT(*) AS total
+            FROM payment_status ps
+            JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
-            WHERE Date(th.created_at) = ?
-            GROUP BY ps.payment_status`;
+            WHERE Date(th.created_at) = ?`;
+            if (user_id) {
+                specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
+            } 
+            specificStatusCountQuery += `GROUP BY ps.payment_status_id,ps.payment_status`
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
+
+        const statusCount = {};
         specificStatusCountResult[0].forEach(row => {
-            payment_status_counts[row.payment_status] = parseInt(row.total);
+            statusCount[row.payment_status_id] = parseInt(row.total);
+        });
+
+        //get all payment status
+        let allPaymentStatusesQuery = `SELECT payment_status_id, payment_status FROM payment_status`;
+        let allPaymentStatusesResult = await connection.query(allPaymentStatusesQuery);
+
+        allPaymentStatusesResult[0].forEach(rows => {
+            payment_status_counts.push({
+                payment_status_id: rows.payment_status_id,
+                payment_status: rows.payment_status,
+                payment_status_total: statusCount[rows.payment_status_id] || 0
+            });
         });
         
         const data = {

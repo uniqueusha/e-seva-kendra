@@ -129,7 +129,6 @@ const getPaymentStatusCount = async (req, res) => {
                 specificPaymentStatusCountQuery += ` AND a.user_id = '${user_id}'`;
             }
             specificPaymentStatusCountQuery += `GROUP BY ps.payment_status_id,ps.payment_status`;
-
         let specificPaymentStatusCountResult = await connection.query(specificPaymentStatusCountQuery,[created_at]);
     
         const statusCount = {};
@@ -137,7 +136,7 @@ const getPaymentStatusCount = async (req, res) => {
             statusCount[row.payment_status_id] = parseInt(row.total);
         });
 
-        //get all verification status
+        //get all payment status
         let allPaymentStatusesQuery = `SELECT payment_status_id, payment_status FROM payment_status`;
         let allPaymentStatusesResult = await connection.query(allPaymentStatusesQuery);
 
@@ -158,8 +157,6 @@ const getPaymentStatusCount = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
-        console.log(error);
-        
         return error500(error, res);
     } finally {
         await connection.release();
