@@ -37,6 +37,7 @@ const getStatusCount = async (req, res) => {
         await connection.beginTransaction();
         
         let task_status_total_list_count = 0;
+        let task_status_total_amount_count = 0;
         let status_counts = [];
         
         // today total status count
@@ -53,8 +54,23 @@ const getStatusCount = async (req, res) => {
         let todayTotalStatusCountResult = await connection.query(todayTotalStatusCountQuery,[created_at]);
         task_status_total_list_count = parseInt(todayTotalStatusCountResult[0][0].total);
         
+        //amount total
+        let taskStatusTotalAmountCountQuery = `SELECT SUM(th.amount) AS total FROM status s
+            JOIN task_header th
+            ON s.status_id = th.status_id
+            WHERE Date(th.created_at) = ?`;
+            if (user_id) {
+                taskStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
+            } 
+            if (assigned_to) {
+                taskStatusTotalAmountCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
+        let taskStatusTotalAmountCountResult = await connection.query(taskStatusTotalAmountCountQuery,[created_at]);
+        task_status_total_amount_count = parseInt(taskStatusTotalAmountCountResult[0][0].total);
+        
+        // specific today total status count
         let specificStatusCountQuery = `
-            SELECT th.status_id,s.status_name, COUNT(*) AS total
+            SELECT th.status_id,s.status_name, SUM(th.amount) AS total_amount, COUNT(*) AS total
             FROM status s
             JOIN task_header th
             ON s.status_id = th.status_id
@@ -70,8 +86,11 @@ const getStatusCount = async (req, res) => {
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
         
         const statusCount = {};
+        const amountTotal = {};
         specificStatusCountResult[0].forEach(row => {
             statusCount[row.status_id] = parseInt(row.total);
+            amountTotal[row.status_id] = parseInt(row.total_amount);
+
         });
 
         //get all status
@@ -82,7 +101,8 @@ const getStatusCount = async (req, res) => {
             status_counts.push({
                 status_id: rows.status_id,
                 status_name: rows.status_name,
-                status_total: statusCount[rows.status_id] ||0
+                status_total: statusCount[rows.status_id] || 0,
+                amount_total: amountTotal[rows.status_id] || 0
             })
         });
         
@@ -90,6 +110,7 @@ const getStatusCount = async (req, res) => {
             status: 200,
             message: "Task dashboard Status Count retrieved successfully",
             task_status_total_list_count:task_status_total_list_count,
+            task_status_total_amount_count:task_status_total_amount_count,
             status_counts:status_counts
         };
 
@@ -112,6 +133,7 @@ const getPaymentStatusCount = async (req, res) => {
         await connection.beginTransaction();
         
         let task_payment_status_total_list_count = 0;
+        let adha_payment_status_total_amount_count = 0;
         let payment_status_counts = [];
         
         // today total status count
@@ -128,8 +150,23 @@ const getPaymentStatusCount = async (req, res) => {
         let todayTotalPaymentStatusCountResult = await connection.query(todayTotalPaymentStatusCountQuery,[created_at]);
         task_payment_status_total_list_count = parseInt(todayTotalPaymentStatusCountResult[0][0].total);
         
+        //amount total
+        let adhaPaymentStatusTotalAmountCountQuery =`SELECT SUM(th.amount) AS total FROM payment_status ps 
+            JOIN task_header th
+            ON ps.payment_status_id = th.payment_status_id
+            WHERE Date(th.created_at) = ?`;
+            if (user_id) {
+                adhaPaymentStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
+            } 
+            if (assigned_to) {
+                adhaPaymentStatusTotalAmountCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            }
+        let adhaPaymentStatusTotalAmountCountResult = await connection.query(adhaPaymentStatusTotalAmountCountQuery,[created_at]);
+        adha_payment_status_total_amount_count = parseInt(adhaPaymentStatusTotalAmountCountResult[0][0].total);
+        
+        // specific today total payment status count
         let specificStatusCountQuery = `
-            SELECT th.payment_status_id,ps.payment_status, COUNT(*) AS total
+            SELECT th.payment_status_id,ps.payment_status, SUM(th.amount) AS total_amount,COUNT(*) AS total
             FROM payment_status ps
             JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
@@ -144,8 +181,11 @@ const getPaymentStatusCount = async (req, res) => {
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
 
         const statusCount = {};
+        const amountTotal = {};
         specificStatusCountResult[0].forEach(row => {
             statusCount[row.payment_status_id] = parseInt(row.total);
+            amountTotal[row.payment_status_id] = parseInt(row.total_amount);
+
         });
 
         //get all payment status
@@ -156,7 +196,8 @@ const getPaymentStatusCount = async (req, res) => {
             payment_status_counts.push({
                 payment_status_id: rows.payment_status_id,
                 payment_status: rows.payment_status,
-                payment_status_total: statusCount[rows.payment_status_id] || 0
+                payment_status_total: statusCount[rows.payment_status_id] || 0,
+                amount_total: amountTotal[rows.payment_status_id] ||0
             });
         });
         
@@ -164,6 +205,7 @@ const getPaymentStatusCount = async (req, res) => {
             status: 200,
             message: "Task dashboard Status Count retrieved successfully",
             task_payment_status_total_list_count:task_payment_status_total_list_count,
+            adha_payment_status_total_amount_count:adha_payment_status_total_amount_count,
             payment_status_counts:payment_status_counts
         };
 
