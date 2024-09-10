@@ -5,6 +5,7 @@ const checkAuth = require("../../middleware/check.auth");
 
 router.post('/',checkAuth,taskHeaderController.addTaskHeader);
 router.get('/',checkAuth,taskHeaderController.getTaskHeaders);
+router.get('/download-task',taskHeaderController.getTaskDownload);
 router.get('/report',taskHeaderController.getReport);
 router.get('/task_assigne',checkAuth,taskHeaderController.getTaskAssignedTo)
 router.get('/:id',checkAuth,taskHeaderController.getTaskHeader);

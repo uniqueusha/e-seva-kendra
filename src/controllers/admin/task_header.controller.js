@@ -1,4 +1,7 @@
 const pool = require("../../../db");
+const xlsx = require('xlsx'); // Import the xlsx library
+const fs = require('fs');
+
 // Function to obtain a database connection
 const getConnection = async () => {
     try {
@@ -617,7 +620,101 @@ const updateTaskStatusChange = async (req, res) => {
         await connection.release();
     }
 };
+const getTaskDownload = async (req, res) => {
+    const {fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status_id} = req.query;
 
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+        let getTaskDownloadQuery = `SELECT th.created_at,th.customer_name,th.mobile_number, s.services,u.user_name,ps.payment_status, st.status_name FROM task_header th
+        JOIN services s
+        ON s.service_id = th.service_id
+        JOIN users u
+        ON u.user_id = th.assigned_to
+        JOIN status st
+        ON st.status_id = th.status_id 
+        JOIN payment_status ps
+        ON ps.payment_status_id = th.payment_status_id WHERE 1 `;
+
+        // from date and to date
+        if (fromDate && toDate) {
+            getReportQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+        }
+        if (assigned_to) {
+            getReportQuery += ` AND th.assigned_to = '${assigned_to}'`;
+        }
+
+        if (status_id) {
+            getReportQuery += ` AND th.status_id = '${status_id}'`;
+        }
+
+        if (service_id) {
+            getReportQuery += ` AND th.service_id = '${service_id}'`;
+        }
+
+        if (user_id) {
+            getReportQuery += ` AND th.user_id = '${user_id}'`;
+        }
+
+        if (payment_status_id) {
+            getReportQuery += ` AND th.payment_status_id = '${payment_status_id}'`;
+        }
+        const result = await connection.query(getTaskDownloadQuery);
+        const task = result[0];
+
+        // Commit the transaction
+        
+        const data = {
+            status: 200,
+            message: "Task retrieved successfully",
+            data: task,
+        };
+        
+        if (data.length === 0) {
+            return res.status(404).send('No data found in the "task" table.');
+        }
+
+        // Create a new workbook
+        const workbook = xlsx.utils.book_new();
+
+        // Create a worksheet and add data to it
+        const worksheet = xlsx.utils.json_to_sheet(task);
+
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(workbook, worksheet, 'TaskInfo');
+
+        // Create a unique file name (e.g., based on timestamp)
+        const excelFileName = `exported_data_${Date.now()}.xlsx`;
+
+        // Write the workbook to a file
+        xlsx.writeFile(workbook, excelFileName);
+
+        // Send the file to the client for download
+        res.download(excelFileName, (err) => {
+            if (err) {
+                // Handle any errors that occur during download
+                console.error(err);
+                res.status(500).send('Error downloading the file.');
+            } else {
+                // Delete the file after it's been sent
+                fs.unlinkSync(excelFileName);
+            }
+        });
+         // Commit the transaction
+         await connection.commit();
+
+    } catch (error) {
+        return error500(error, res);
+
+    }finally {
+        if (connection) connection.release()
+    }
+};
 
 
 module.exports = {
@@ -628,5 +725,6 @@ module.exports = {
     getTaskAssignedTo,
     getReport,
     deleteTaskDocuments,
-    updateTaskStatusChange
+    updateTaskStatusChange,
+    getTaskDownload
 }
