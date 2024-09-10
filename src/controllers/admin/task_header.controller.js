@@ -35,6 +35,7 @@ const addTaskHeader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to  : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim()  : '';
     const  payment_status_id  = req.body.payment_status_id  ? req.body.payment_status_id : '';
+    const  amount  = req.body.amount  ? req.body.amount : '';
     const  status_id  = req.body.status_id  ? req.body.status_id : '';
     const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
@@ -84,8 +85,8 @@ const addTaskHeader = async (req, res) => {
          //Start the transaction
          await connection.beginTransaction();
         //insert into Task Header
-        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id) VALUES ( ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
-        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id];
+        const insertTaskHeaderQuery = `INSERT INTO task_header (customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, amount, status_id, task_note, user_id) VALUES ( ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)`;
+        const insertTaskHeaderValues = [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, amount, status_id, task_note, user_id];
         const taskHeaderResult = await connection.query(insertTaskHeaderQuery, insertTaskHeaderValues);
         const task_header_id = taskHeaderResult[0].insertId;
        
@@ -150,16 +151,8 @@ const getTaskHeaders = async (req, res) => {
         ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getTaskHeaderQuery += ` AND status = 1`;
-                countQuery += ` AND status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getTaskHeaderQuery += ` AND status = 0`;
-                countQuery += ` AND status = 0`;
-            } else {
-                getTaskHeaderQuery += ` AND  LOWER(th.customer_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(th.customer_name) LIKE '%${lowercaseKey}%' `;
-            }
+                getTaskHeaderQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
+                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%'|| LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
         }
         if (user_id) {
             getTaskHeaderQuery += ` AND th.user_id = ${user_id}`;
@@ -264,6 +257,7 @@ const updateTaskheader = async (req, res) => {
     const  assigned_to  = req.body.assigned_to  ? req.body.assigned_to : '';
     const  due_date  = req.body.due_date  ? req.body.due_date.trim() : '';
     const  payment_status_id  = req.body.payment_status_id  ? req.body.payment_status_id : '';
+    const  amount  = req.body.amount  ? req.body.amount : '';
     const  status_id  = req.body.status_id  ? req.body.status_id : '';
     const  task_note  = req.body.task_note  ? req.body.task_note.trim() : '';
     const  taskDocumentsDetails = req.body.taskDocumentsDetails ? req.body.taskDocumentsDetails : [];
@@ -320,8 +314,8 @@ const updateTaskheader = async (req, res) => {
         await connection.beginTransaction();
 
         // Update Task Heater
-        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, assigned_to = ?, due_date = ?, payment_status_id = ?, status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
-        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, status_id, task_note, user_id, taskHeaderId]);
+        const updateQuery = `UPDATE task_header SET customer_name = ?,mobile_number = ?, address = ?, service_id = ?, work_details_id= ?, assigned_to = ?, due_date = ?, payment_status_id = ?, amount = ? ,status_id = ?, task_note = ?, user_id = ? WHERE task_header_id = ?`;
+        await connection.query(updateQuery, [customer_name, mobile_number, address, service_id, work_details_id, assigned_to, due_date, payment_status_id, amount, status_id, task_note, user_id, taskHeaderId]);
         
         //update into task documents
         let documentsArray = taskDocumentsDetails
@@ -395,16 +389,8 @@ const getTaskAssignedTo = async (req, res) => {
         WHERE assigned_to = ${assignedTo}`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                taskAssignedToQuery += ` AND status = 1`;
-                countQuery += ` AND status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                taskAssignedToQuery += ` AND status = 0`;
-                countQuery += ` AND status = 0`;
-            } else {
-                taskAssignedToQuery += ` AND  LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(u.user_name) LIKE '%${lowercaseKey}%' `;
-            }
+                taskAssignedToQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
+                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%'|| LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
         }
         if (statusId) {
             taskAssignedToQuery += ` AND th.status_id = ${statusId}`;
@@ -539,8 +525,6 @@ const getReport = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
-        
-        
         return error500(error, res);
     } finally {
         await connection.release();

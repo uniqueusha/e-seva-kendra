@@ -123,31 +123,21 @@ const userLogin = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
         // Check if the user with the provided user email id exists or not
-        const checkUserQuery =
-            "SELECT * FROM users WHERE LOWER(TRIM(email_id)) = ? AND status=1";
-        const checkUserResult = await connection.query(checkUserQuery, [
-            email_id.toLowerCase(),
-        ]);
+        const checkUserQuery = "SELECT * FROM users WHERE LOWER(TRIM(email_id)) = ? AND status=1";
+        const checkUserResult = await connection.query(checkUserQuery, [email_id.toLowerCase()]);
         const check_user = checkUserResult[0][0];
         if (!check_user) {
             return error422("Authentication failed.", res);
         }
         // Check if the user with the provided user id exists
-        const checkUserContrasenaQuery =
-            "SELECT * FROM contrasena WHERE user_id = ?";
-        const checkUserContrasenaResult = await connection.query(
-            checkUserContrasenaQuery,
-            [check_user.user_id]
-        );
+        const checkUserContrasenaQuery ="SELECT * FROM contrasena WHERE user_id = ?";
+        const checkUserContrasenaResult = await connection.query(checkUserContrasenaQuery,[check_user.user_id]);
         const user_contrasena = checkUserContrasenaResult[0][0];
         if (!user_contrasena) {
             return error422("Authentication failed.", res);
         }
 
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user_contrasena.extenstions
-        );
+        const isPasswordValid = await bcrypt.compare(password,user_contrasena.extenstions);
         if (!isPasswordValid) {
             return error422("Password worng.", res);
         }

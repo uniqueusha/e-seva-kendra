@@ -49,8 +49,6 @@ const addAdha = async (req, res) => {
         return error422("Enrollment number is required.", res);
     }if (!enollment_time) {
         return error422("Enollment time is required.", res);
-    }if (!service_id) {
-        return error422("Service id is required.", res);
     }if (!verification_status_id) {
         return error422("Verification status  id is required.", res);
     }if (!payment_status_id) {
@@ -61,12 +59,6 @@ const addAdha = async (req, res) => {
         return error422("User ID is required.", res);
     }
 
-   //check service already is exists or not
-   const isExistServiceQuery = `SELECT * FROM services WHERE service_id = ?`;
-   const isExistServiceResult = await pool.query(isExistServiceQuery, [service_id, user_id]);
-   if (isExistServiceResult[0].length === 0) {
-       return error422("Service not Found.", res);
-   }
     
    //check work details already is exists or not
    const isExistWorkDetailTypeQuery = `SELECT * FROM work_details WHERE work_details_id = ?`;
@@ -176,8 +168,8 @@ const getAdhas = async (req, res) => {
                 getAdhaQuery += ` AND a.status = 0`;
                 countQuery += ` AND a.status = 0`;
             } else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
             }
         }
         if (userId) {
@@ -272,9 +264,9 @@ const getAdhasReport = async (req, res) => {
             } else if (lowercaseKey === "deactivated") {
                 getAdhaQuery += ` AND a.status = 0`;
                 countQuery += ` AND a.status = 0`;
-            } else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+            }else {
+                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
+                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
             }
         }
         if (fromDate && toDate) {
@@ -355,15 +347,15 @@ const getAdha = async (req, res) => {
         await connection.beginTransaction();
 
         const adhaQuery = `SELECT a.*, u.user_name, s.services, wd.work_details,vs.verification_status, ps.payment_status FROM adha a
-        JOIN users u 
+        LEFT JOIN users u 
         ON u.user_id = a.user_id
-        JOIN services s
+        LEFT JOIN services s
         ON s.service_id = a.service_id
-        JOIN work_details wd
+        LEFT JOIN work_details wd
         ON wd.work_details_id = a.work_details_id
-        JOIN verification_status vs
+        LEFT JOIN verification_status vs
         ON vs.verification_status_id = a.verification_status_id
-        JOIN payment_status ps
+        LEFT JOIN payment_status ps
         ON ps.payment_status_id = a.payment_status_id
         WHERE a.id=?`;
         const adhaResult = await connection.query(adhaQuery, [adhaId]);
@@ -420,8 +412,6 @@ const updateAdha = async (req, res) => {
         return error422("Enrollment number is required.", res);
     }else if (!enollment_time) {
         return error422("Enollment time is required.", res);
-    }else if (!service_id) {
-        return error422("Service id is required.", res);
     }else if (!verification_status_id) {
         return error422("Verification status id is required.", res);
     }else if (!payment_status_id) {
@@ -457,15 +447,6 @@ const updateAdha = async (req, res) => {
         const adhaResult = await connection.query(adhaQuery, [adhaId]);
         if (adhaResult[0].length == 0) {
             return error422("Adha Not Found.", res);
-        }
-        
-        if(service_id){
-            //check if check service_id exists
-            const isExistServiceQuery="SELECT * FROM services WHERE service_id = ?";
-            const serviceResult=await connection.query(isExistServiceQuery,[service_id]);
-            if(serviceResult[0].length==0){
-                return error422("Service Not Found",res);
-            }
         }
 
         //check work details already is exists or not
