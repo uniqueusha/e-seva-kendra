@@ -43,7 +43,7 @@ const getVerificationStatusCount = async (req, res) => {
         let todayTotalVerificationStatusCountQuery = `SELECT COUNT(*) AS total FROM verification_status vs
             JOIN adha a
             ON vs.verification_status_id = a.verification_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND vs.status = 1`;
             if (user_id) {
                 todayTotalVerificationStatusCountQuery += ` AND a.user_id = '${user_id}'`;
             } 
@@ -54,7 +54,7 @@ const getVerificationStatusCount = async (req, res) => {
         let adhaVerificationStatusTotalAmountCountQuery = `SELECT SUM(a.amount) AS total FROM verification_status vs
             JOIN adha a
             ON vs.verification_status_id = a.verification_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND vs.status = 1`;
             if (user_id) {
                 adhaVerificationStatusTotalAmountCountQuery += ` AND a.user_id = '${user_id}'`;
             }
@@ -63,15 +63,15 @@ const getVerificationStatusCount = async (req, res) => {
 
         // specific today total status count
         let specificVerificationStatusCountQuery = `
-            SELECT vs.verification_status_id,vs.verification_status, SUM(a.amount) AS total_amount, COUNT(*) AS total
+            SELECT vs.verification_status_id, vs.verification_status, SUM(a.amount) AS total_amount, COUNT(*) AS total
             FROM verification_status vs
-             JOIN adha a
+            JOIN adha a
             ON vs.verification_status_id = a.verification_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND vs.status = 1`;
             if (user_id) {
                 specificVerificationStatusCountQuery += ` AND a.user_id = '${user_id}'`;
-            } 
-            specificVerificationStatusCountQuery += `GROUP BY vs.verification_status_id,vs.verification_status`;
+            }
+            specificVerificationStatusCountQuery += ` GROUP BY vs.verification_status_id, vs.verification_status`; 
         let specificVerificationStatusCountResult= await connection.query(specificVerificationStatusCountQuery,[created_at]);
         
         const statusCount = {};
@@ -82,7 +82,7 @@ const getVerificationStatusCount = async (req, res) => {
         });
         
         //get all verification status
-        let allVerificationStatusesQuery = `SELECT verification_status_id, verification_status FROM verification_status`;
+        let allVerificationStatusesQuery = `SELECT verification_status_id, verification_status FROM verification_status `;
         let allVerificationStatusesResult = await connection.query(allVerificationStatusesQuery);
 
         allVerificationStatusesResult[0].forEach(rows => {
@@ -128,7 +128,7 @@ const getPaymentStatusCount = async (req, res) => {
         let todayTotalPaymentStatusCountQuery = `SELECT COUNT(*) AS total FROM payment_status ps
             JOIN adha a
             ON ps.payment_status_id = a.payment_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 todayTotalPaymentStatusCountQuery += ` AND a.user_id = '${user_id}'`;
             }
@@ -139,7 +139,7 @@ const getPaymentStatusCount = async (req, res) => {
         let adhaPaymentStatusTotalAmountCountQuery = `SELECT SUM(a.amount) AS total FROM payment_status ps
             JOIN adha a
             ON ps.payment_status_id = a.payment_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 adhaPaymentStatusTotalAmountCountQuery += ` AND a.user_id = '${user_id}'`;
             }
@@ -148,15 +148,15 @@ const getPaymentStatusCount = async (req, res) => {
 
         // specific today total status count
         let specificPaymentStatusCountQuery = `
-            SELECT ps.payment_status_id,ps.payment_status, SUM(a.amount) AS total_amount, COUNT(*) AS total
+            SELECT ps.payment_status_id, ps.payment_status, SUM(a.amount) AS total_amount, COUNT(*) AS total
             FROM payment_status ps
             JOIN adha a
             ON ps.payment_status_id = a.payment_status_id
-            WHERE Date(a.created_at) = ?`;
+            WHERE Date(a.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 specificPaymentStatusCountQuery += ` AND a.user_id = '${user_id}'`;
             }
-            specificPaymentStatusCountQuery += `GROUP BY ps.payment_status_id,ps.payment_status`;
+            specificPaymentStatusCountQuery += ` GROUP BY ps.payment_status_id, ps.payment_status`;
         let specificPaymentStatusCountResult = await connection.query(specificPaymentStatusCountQuery,[created_at]);
     
         const statusCount = {};
