@@ -154,8 +154,8 @@ const getTaskHeaders = async (req, res) => {
         ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-                getTaskHeaderQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
-                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%'|| LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
+            getTaskHeaderQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%' OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
+            countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%' OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
         }
         if (user_id) {
             getTaskHeaderQuery += ` AND th.user_id = ${user_id}`;
@@ -392,8 +392,8 @@ const getTaskAssignedTo = async (req, res) => {
         WHERE assigned_to = ${assignedTo}`;
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-                taskAssignedToQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
-                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' || LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%'|| LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
+                taskAssignedToQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%' OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
+                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%'OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
         }
         if (statusId) {
             taskAssignedToQuery += ` AND th.status_id = ${statusId}`;
@@ -439,7 +439,7 @@ const getTaskAssignedTo = async (req, res) => {
 
 //Report
 const getReport = async (req, res) => {
-    const { page, perPage, fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status_id} = req.query;
+    const { page, perPage, key, fromDate, toDate, assigned_to, status_id, service_id, user_id, payment_status_id} = req.query;
  
     // Attempt to obtain a database connection
     let connection = await getConnection();
@@ -468,6 +468,11 @@ const getReport = async (req, res) => {
         JOIN payment_status ps
         ON ps.payment_status_id = th.payment_status_id WHERE 1`;
         
+        if (key) {
+            const lowercaseKey = key.toLowerCase().trim();
+            getReportQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%' OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`;
+                countQuery += ` AND (LOWER(th.customer_name) LIKE '%${lowercaseKey}%' OR LOWER(th.mobile_number) LIKE '%${lowercaseKey}%' OR LOWER(s.services) LIKE '%${lowercaseKey}%'OR LOWER(u.user_name) LIKE '%${lowercaseKey}%')`; 
+        }
 
         // from date and to date
         if (fromDate && toDate) {

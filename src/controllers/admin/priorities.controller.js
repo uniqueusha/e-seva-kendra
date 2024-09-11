@@ -87,8 +87,8 @@ const getPriorities = async (req, res) => {
                 getPrioritiesQuery += ` AND status = 0`;
                 countQuery += ` AND status = 0`;
             } else {
-                getPrioritiesQuery += ` AND  LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%' `;
+                getPrioritiesQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%'`;
+                countQuery += ` AND LOWER(priority_name) LIKE '%${lowercaseKey}%'`;
             }
         }
         getPrioritiesQuery += " ORDER BY created_at DESC";

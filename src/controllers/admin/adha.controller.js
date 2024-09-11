@@ -73,14 +73,14 @@ const addAdha = async (req, res) => {
    const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
    const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
    if (isExistVerificationStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" verification status Not Found.", res);
    }
 
    //check payment status already is exists or not
    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
    if (isExistPaymentStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" payment status Not Found.", res);
    }
    
     // attempt to obtain a database connection
@@ -163,16 +163,8 @@ const getAdhas = async (req, res) => {
         
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getAdhaQuery += ` AND a.status = 1`;
-                countQuery += ` AND a.status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getAdhaQuery += ` AND a.status = 0`;
-                countQuery += ` AND a.status = 0`;
-            } else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-            }
+            getAdhaQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
+            countQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
         }
         if (userId) {
             getAdhaQuery += ` AND a.user_id = ${userId}`;
@@ -221,7 +213,7 @@ const getAdhas = async (req, res) => {
         if (connection) connection.release()
     }
 
-}
+};
 
 // get adha report...
 const getAdhasReport = async (req, res) => {
@@ -256,20 +248,10 @@ const getAdhasReport = async (req, res) => {
         LEFT JOIN payment_status ps
         ON ps.payment_status_id = a.payment_status_id
         WHERE 1`;
- 
-        
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getAdhaQuery += ` AND a.status = 1`;
-                countQuery += ` AND a.status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getAdhaQuery += ` AND a.status = 0`;
-                countQuery += ` AND a.status = 0`;
-            }else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-            }
+            getAdhaQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
+            countQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
         }
         if (fromDate && toDate) {
             getAdhaQuery += ` AND DATE(a.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
@@ -329,11 +311,12 @@ const getAdhasReport = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
+        console.log(error);
+        
         return error500(error, res);
     }finally {
         if (connection) connection.release()
     }
-
 }
 
 // get adha  by id...
@@ -426,14 +409,14 @@ const updateAdha = async (req, res) => {
    const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
    const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
    if (isExistVerificationStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" verification status Not Found.", res);
    }
 
    //check payment status already is exists or not
    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
    if (isExistPaymentStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422("payment status Not Found.", res);
    }
 
     // attempt to obtain a database connection
