@@ -75,14 +75,17 @@ const getWorkDetails = async (req, res) => {
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
             if (lowercaseKey === "activated") {
-                getWorkDetailsQuery += ` AND status = 1`;
-                countQuery += ` AND e.status = 1`;
+                getWorkDetailsQuery += ` AND wd.tatus = 1`;
+                countQuery += ` AND wd.status = 1`;
             } else if (lowercaseKey === "deactivated") {
-                getWorkDetailsQuery += ` AND status = 0`;
-                countQuery += ` AND status = 0`;
+                getWorkDetailsQuery += ` AND wd.status = 0`;
+                countQuery += ` AND wd.status = 0`;
+            } else {
+                getWorkDetailsQuery += ` AND LOWER(wd.work_details) LIKE '%${lowercaseKey}%'`;
+                countQuery += ` AND LOWER(wd.work_details) LIKE '%${lowercaseKey}%'`;
             }
         }
-        getWorkDetailsQuery += " ORDER BY created_at DESC";
+        getWorkDetailsQuery += "ORDER BY created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
@@ -112,6 +115,8 @@ const getWorkDetails = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
+        console.log(error);
+        
         return error500(error, res);
     } finally {
         await connection.release();
