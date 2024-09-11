@@ -44,7 +44,7 @@ const getStatusCount = async (req, res) => {
         let todayTotalStatusCountQuery = `SELECT COUNT(*) AS total FROM status s
             JOIN task_header th
             ON s.status_id = th.status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND s.status = 1`;
             if (user_id) {
                 todayTotalStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
@@ -58,7 +58,7 @@ const getStatusCount = async (req, res) => {
         let taskStatusTotalAmountCountQuery = `SELECT SUM(th.amount) AS total FROM status s
             JOIN task_header th
             ON s.status_id = th.status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND s.status = 1`;
             if (user_id) {
                 taskStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
@@ -74,7 +74,7 @@ const getStatusCount = async (req, res) => {
             FROM status s
             JOIN task_header th
             ON s.status_id = th.status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND s.status = 1`;
             if (user_id) {
                 specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             }
@@ -82,7 +82,7 @@ const getStatusCount = async (req, res) => {
                 specificStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
             }
 
-            specificStatusCountQuery += `GROUP BY s.status_id, s.status_name`;
+            specificStatusCountQuery += ` GROUP BY s.status_id, s.status_name `;
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
         
         const statusCount = {};
@@ -140,7 +140,7 @@ const getPaymentStatusCount = async (req, res) => {
         let todayTotalPaymentStatusCountQuery = `SELECT COUNT(*) AS total FROM payment_status ps 
             JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 todayTotalPaymentStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
@@ -154,7 +154,7 @@ const getPaymentStatusCount = async (req, res) => {
         let adhaPaymentStatusTotalAmountCountQuery =`SELECT SUM(th.amount) AS total FROM payment_status ps 
             JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 adhaPaymentStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
@@ -170,14 +170,14 @@ const getPaymentStatusCount = async (req, res) => {
             FROM payment_status ps
             JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
-            WHERE Date(th.created_at) = ?`;
+            WHERE Date(th.created_at) = ? AND ps.status = 1`;
             if (user_id) {
                 specificStatusCountQuery += ` AND th.user_id = '${user_id}'`;
             } 
             if (assigned_to) {
                 specificStatusCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
             }
-            specificStatusCountQuery += `GROUP BY ps.payment_status_id,ps.payment_status`
+            specificStatusCountQuery += ` GROUP BY ps.payment_status_id, ps.payment_status `;
         let specificStatusCountResult = await connection.query(specificStatusCountQuery,[created_at]);
 
         const statusCount = {};
