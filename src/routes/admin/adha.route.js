@@ -6,6 +6,7 @@ const checkAuth = require("../../middleware/check.auth");
 
 router.post('/',checkAuth,adhaController.addAdha);
 router.get('/',checkAuth,adhaController.getAdhas);
+router.get('/download-adha',adhaController.getAdhaDownload);
 router.get('/report',checkAuth,adhaController.getAdhasReport);
 router.get('/:id',checkAuth,adhaController.getAdha);
 router.put('/:id',checkAuth,adhaController.updateAdha);

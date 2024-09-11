@@ -1,4 +1,6 @@
 const pool = require("../../../db");
+const xlsx = require('xlsx'); // Import the xlsx library
+const fs = require('fs');
 
 // Function to obtain a database connection
 const getConnection = async () => {
@@ -71,14 +73,14 @@ const addAdha = async (req, res) => {
    const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
    const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
    if (isExistVerificationStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" verification status Not Found.", res);
    }
 
    //check payment status already is exists or not
    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
    if (isExistPaymentStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" payment status Not Found.", res);
    }
    
     // attempt to obtain a database connection
@@ -161,16 +163,8 @@ const getAdhas = async (req, res) => {
         
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getAdhaQuery += ` AND a.status = 1`;
-                countQuery += ` AND a.status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getAdhaQuery += ` AND a.status = 0`;
-                countQuery += ` AND a.status = 0`;
-            } else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-            }
+            getAdhaQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
+            countQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
         }
         if (userId) {
             getAdhaQuery += ` AND a.user_id = ${userId}`;
@@ -219,7 +213,7 @@ const getAdhas = async (req, res) => {
         if (connection) connection.release()
     }
 
-}
+};
 
 // get adha report...
 const getAdhasReport = async (req, res) => {
@@ -254,20 +248,10 @@ const getAdhasReport = async (req, res) => {
         LEFT JOIN payment_status ps
         ON ps.payment_status_id = a.payment_status_id
         WHERE 1`;
- 
-        
         if (key) {
             const lowercaseKey = key.toLowerCase().trim();
-            if (lowercaseKey === "activated") {
-                getAdhaQuery += ` AND a.status = 1`;
-                countQuery += ` AND a.status = 1`;
-            } else if (lowercaseKey === "deactivated") {
-                getAdhaQuery += ` AND a.status = 0`;
-                countQuery += ` AND a.status = 0`;
-            }else {
-                getAdhaQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-                countQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' || LOWER(a.enrollment_number) LIKE '%${lowercaseKey}% || LOWER(s.services) LIKE '%${lowercaseKey}%' || LOWER(vs.verification_status) LIKE '%${lowercaseKey}%' `;
-            }
+            getAdhaQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
+            countQuery += ` AND (LOWER(a.name) LIKE '%${lowercaseKey}%' OR LOWER(a.enrollment_number) LIKE '%${lowercaseKey}%' OR LOWER(vs.verification_status) LIKE '%${lowercaseKey}%')`;
         }
         if (fromDate && toDate) {
             getAdhaQuery += ` AND DATE(a.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
@@ -327,11 +311,12 @@ const getAdhasReport = async (req, res) => {
 
         return res.status(200).json(data);
     } catch (error) {
+        console.log(error);
+        
         return error500(error, res);
     }finally {
         if (connection) connection.release()
     }
-
 }
 
 // get adha  by id...
@@ -424,14 +409,14 @@ const updateAdha = async (req, res) => {
    const isExistVerificationStatusQuery = `SELECT * FROM verification_status WHERE verification_status_id = ?`;
    const isExistVerificationStatusResult = await pool.query(isExistVerificationStatusQuery, [verification_status_id]);
    if (isExistVerificationStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422(" verification status Not Found.", res);
    }
 
    //check payment status already is exists or not
    const isExistPaymentStatusQuery = `SELECT * FROM payment_status WHERE payment_status_id = ?`;
    const isExistPaymentStatusResult = await pool.query(isExistPaymentStatusQuery, [payment_status_id]);
    if (isExistPaymentStatusResult[0].length === 0) {
-       return error422(" Work Details Not Found.", res);
+       return error422("payment status Not Found.", res);
    }
 
     // attempt to obtain a database connection
@@ -541,6 +526,117 @@ const verificationStatusChange = async (req, res) => {
         await connection.release();
     }
 };
+const getAdhaDownload = async (req, res) => {
+    const {key, fromDate, toDate, service_id, verification_status_id, payment_status_id, user_id, current_date } = req.query;
+    
+    // attempt to obtain a database connection
+    let connection = await getConnection();
+    try {
+
+        //start a transaction
+        await connection.beginTransaction();
+
+        let getAdhaDownloadQuery = `SELECT a.created_at,a.name,a.enrollment_number,a.enollment_time,a.mobile_number,u.user_name,a.amount,ps.payment_status,vs.verification_status FROM adha a
+        LEFT JOIN users u 
+        ON u.user_id = a.user_id
+        LEFT JOIN services s
+        ON s.service_id = a.service_id
+        LEFT JOIN verification_status vs
+        ON vs.verification_status_id = a.verification_status_id
+        LEFT JOIN payment_status ps
+        ON ps.payment_status_id = a.payment_status_id
+        WHERE 1 `;
+        
+        if (key) {
+            const lowercaseKey = key.toLowerCase().trim();
+            if (lowercaseKey === "activated") {
+                getAdhaDownloadQuery += ` AND a.status = 1`;
+            
+            } else if (lowercaseKey === "deactivated") {
+                getAdhaDownloadQuery += ` AND a.status = 0`;
+               
+            } else {
+                getAdhaDownloadQuery += ` AND  LOWER(a.name) LIKE '%${lowercaseKey}%' `;
+               
+            }
+        }
+        if (fromDate && toDate) {
+            getAdhaDownloadQuery += ` AND DATE(a.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+        
+        }
+        if (service_id) {
+            getAdhaDownloadQuery += ` AND a.service_id = '${service_id}'`;
+          
+        }
+        if (verification_status_id) {
+            getAdhaDownloadQuery += ` AND a.verification_status_id = '${verification_status_id}'`;
+            
+        }
+        if (payment_status_id) {
+            getAdhaDownloadQuery += ` AND a.payment_status_id = '${payment_status_id}'`;
+       
+        }
+        if (user_id) {
+            getAdhaDownloadQuery += ` AND a.user_id = '${user_id}'`;
+    
+        }
+        if (current_date) {
+            getAdhaDownloadQuery += ` AND DATE(a.created_at) = '${current_date}'`;
+          
+        }
+        getAdhaDownloadQuery += " ORDER BY a.created_at DESC";
+        const result = await connection.query(getAdhaDownloadQuery);
+        const adha = result[0];
+
+        // Commit the transaction
+        
+        const data = {
+            status: 200,
+            message: "Adha retrieved successfully",
+            data: adha,
+        };
+        
+        if (data.length === 0) {
+            return res.status(404).send('No data found in the "adha" table.');
+        }
+
+        // Create a new workbook
+        const workbook = xlsx.utils.book_new();
+
+        // Create a worksheet and add data to it
+        const worksheet = xlsx.utils.json_to_sheet(adha);
+
+
+        // Add the worksheet to the workbook
+        xlsx.utils.book_append_sheet(workbook, worksheet, 'AdhaInfo');
+
+        // Create a unique file name (e.g., based on timestamp)
+        const excelFileName = `exported_data_${Date.now()}.xlsx`;
+
+        // Write the workbook to a file
+        xlsx.writeFile(workbook, excelFileName);
+
+        // Send the file to the client for download
+        res.download(excelFileName, (err) => {
+            if (err) {
+                // Handle any errors that occur during download
+                console.error(err);
+                res.status(500).send('Error downloading the file.');
+            } else {
+                // Delete the file after it's been sent
+                fs.unlinkSync(excelFileName);
+            }
+        });
+         // Commit the transaction
+         await connection.commit();
+
+    } catch (error) {
+        return error500(error, res);
+
+    }finally {
+        if (connection) connection.release()
+    }
+};
 
 
 module.exports = {
@@ -549,5 +645,6 @@ module.exports = {
         getAdha,
         updateAdha,
         getAdhasReport,
-        verificationStatusChange
+        verificationStatusChange,
+        getAdhaDownload
 }
