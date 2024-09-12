@@ -647,26 +647,26 @@ const getTaskDownload = async (req, res) => {
 
         // from date and to date
         if (fromDate && toDate) {
-            getReportQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
+            getTaskDownloadQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
         }
         if (assigned_to) {
-            getReportQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            getTaskDownloadQuery += ` AND th.assigned_to = '${assigned_to}'`;
         }
 
         if (status_id) {
-            getReportQuery += ` AND th.status_id = '${status_id}'`;
+            getTaskDownloadQuery += ` AND th.status_id = '${status_id}'`;
         }
 
         if (service_id) {
-            getReportQuery += ` AND th.service_id = '${service_id}'`;
+            getTaskDownloadQuery += ` AND th.service_id = '${service_id}'`;
         }
 
         if (user_id) {
-            getReportQuery += ` AND th.user_id = '${user_id}'`;
+            getTaskDownloadQuery += ` AND th.user_id = '${user_id}'`;
         }
 
         if (payment_status_id) {
-            getReportQuery += ` AND th.payment_status_id = '${payment_status_id}'`;
+            getTaskDownloadQuery += ` AND th.payment_status_id = '${payment_status_id}'`;
         }
         const result = await connection.query(getTaskDownloadQuery);
         const task = result[0];
