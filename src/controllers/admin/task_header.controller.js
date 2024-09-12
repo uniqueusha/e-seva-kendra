@@ -649,6 +649,7 @@ const getTaskDownload = async (req, res) => {
         if (fromDate && toDate) {
             getTaskDownloadQuery += ` AND DATE(th.created_at) BETWEEN '${fromDate}' AND '${toDate}'`;
         }
+        
         if (assigned_to) {
             getTaskDownloadQuery += ` AND th.assigned_to = '${assigned_to}'`;
         }
