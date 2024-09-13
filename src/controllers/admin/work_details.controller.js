@@ -63,7 +63,7 @@ const getWorkDetails = async (req, res) => {
         //Start the transaction
         await connection.beginTransaction();
 
-        let getWorkDetailsQuery = `SELECT wd.*,u.user_name FROM work_details wd
+        let getWorkDetailsQuery = `SELECT wd.*, u.user_name FROM work_details wd
         JOIN users u
         ON u.user_id = wd.user_id
         WHERE wd.user_id = ${user_id}`;
@@ -85,7 +85,7 @@ const getWorkDetails = async (req, res) => {
                 countQuery += ` AND LOWER(wd.work_details) LIKE '%${lowercaseKey}%'`;
             }
         }
-        getWorkDetailsQuery += "ORDER BY created_at DESC";
+        getWorkDetailsQuery += " ORDER BY wd.created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {

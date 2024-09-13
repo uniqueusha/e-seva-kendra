@@ -166,7 +166,7 @@ const getTaskHeaders = async (req, res) => {
             countQuery += ` AND DATE(th.created_at) = '${current_date}'`;
         }
 
-        getTaskHeaderQuery += " ORDER BY created_at DESC";
+        getTaskHeaderQuery += " ORDER BY th.created_at DESC";
         // Apply pagination if both page and perPage are provided
         let total = 0;
         if (page && perPage) {
