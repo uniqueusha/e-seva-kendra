@@ -135,7 +135,7 @@ const getPaymentStatusCount = async (req, res) => {
         await connection.beginTransaction();
 
         let task_payment_status_total_list_count = 0;
-        let adha_payment_status_total_amount_count = 0;
+        let task_payment_status_total_amount_count = 0;
         let payment_status_counts = [];
 
         // today total status count
@@ -164,7 +164,7 @@ const getPaymentStatusCount = async (req, res) => {
             adhaPaymentStatusTotalAmountCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
         }
         let adhaPaymentStatusTotalAmountCountResult = await connection.query(adhaPaymentStatusTotalAmountCountQuery, [created_at]);
-        adha_payment_status_total_amount_count = parseInt(adhaPaymentStatusTotalAmountCountResult[0][0].total);
+        task_payment_status_total_amount_count = parseInt(adhaPaymentStatusTotalAmountCountResult[0][0].total);
 
         // specific today total payment status count
         let specificStatusCountQuery = `
@@ -209,13 +209,12 @@ const getPaymentStatusCount = async (req, res) => {
             status: 200,
             message: "Task dashboard Status Count retrieved successfully",
             task_payment_status_total_list_count: task_payment_status_total_list_count,
-            adha_payment_status_total_amount_count: adha_payment_status_total_amount_count,
+            task_payment_status_total_amount_count: task_payment_status_total_amount_count,
             payment_status_counts: payment_status_counts
         };
 
         return res.status(200).json(data);
     } catch (error) {
-        console.log(error);
         return error500(error, res);
     } finally {
         await connection.release();
