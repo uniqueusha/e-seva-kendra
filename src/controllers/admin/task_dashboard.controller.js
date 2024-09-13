@@ -153,18 +153,18 @@ const getPaymentStatusCount = async (req, res) => {
         task_payment_status_total_list_count = parseInt(todayTotalPaymentStatusCountResult[0][0].total);
 
         //amount total
-        let adhaPaymentStatusTotalAmountCountQuery = `SELECT SUM(th.amount) AS total FROM payment_status ps 
+        let taskPaymentStatusTotalAmountCountQuery = `SELECT SUM(th.amount) AS total FROM payment_status ps 
             JOIN task_header th
             ON ps.payment_status_id = th.payment_status_id
             WHERE Date(th.created_at) = ? AND ps.status = 1`;
         if (user_id) {
-            adhaPaymentStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
+            taskPaymentStatusTotalAmountCountQuery += ` AND th.user_id = '${user_id}'`;
         }
         if (assigned_to) {
-            adhaPaymentStatusTotalAmountCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
+            taskPaymentStatusTotalAmountCountQuery += ` AND th.assigned_to = '${assigned_to}'`;
         }
-        let adhaPaymentStatusTotalAmountCountResult = await connection.query(adhaPaymentStatusTotalAmountCountQuery, [created_at]);
-        task_payment_status_total_amount_count = parseInt(adhaPaymentStatusTotalAmountCountResult[0][0].total);
+        let taskPaymentStatusTotalAmountCountResult = await connection.query(taskPaymentStatusTotalAmountCountQuery, [created_at]);
+        task_payment_status_total_amount_count = parseInt(taskPaymentStatusTotalAmountCountResult[0][0].total);
 
         // specific today total payment status count
         let specificStatusCountQuery = `
