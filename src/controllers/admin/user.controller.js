@@ -1,7 +1,17 @@
 const pool = require("../../../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
+let transporter = nodemailer.createTransport({
+  host: "smtp.hostinger.com",
+  port: 465,
+  secure: true, // true for 465, false for other ports
+  auth: {
+    user: "poorva@webmantraitsolutions.com", // generated ethereal user
+    pass: "Webmantra@123", // generated ethereal password
+  },
+});
 // Function to obtain a database connection
 const getConnection = async () => {
     try {
@@ -94,12 +104,54 @@ const addUser = async (req, res) => {
             insertContrasenaQuery,
             insertContrasenaValues
         );
-
+        const message = `
+        Dear ${user_name},
+       
+        We are excited to inform you that your registration  has been completed successfully
+       
+        Here are your account details:
+        Username: ${user_name}
+        Email: ${email_id}
+       Password:${password}
+       
+        You can now access your account and explore all the features available to you. 
+       
+        If you have any questions or need assistance, feel free to contact our support team at Webmantraitsolution.com.
+       
+        Thank you for joining us, and we look forward to serving you!
+       
+        Best regards,
+        Poorva
+        Webmantra It Solutions
+       `;
+           // Validate required fields.
+           if (!user_name || !email_id || !message) {
+             return res
+               .status(400)
+               .json({ 
+                 status: 400, 
+                 message: "Missing required fields" });
+           }
+       
+           // Prepare the email message options.
+           const mailOptions = {
+             from: "poorva@webmantraitsolutions.com", // Sender address from environment variables.
+             to: `${email_id}`, // Recipient's name and email address.
+             replyTo: "rohitlandage86@gmail.com", // Sets the email address for recipient responses.
+             cc: "rohitlandage86@gmail.com",
+             subject: "User registration", // Subject line.
+             text: message, // Plaintext body.
+           };
+       
+           // Send email and log the response.
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Email sent:", info.response);
+       
         //commit the transation
         await connection.commit();
         res.status(200).json({
             status: 200,
-            message: "User added successfully",
+            message: `User ${user_name} added successfully`,
         });
     } catch (error) {
         await connection.rollback();
