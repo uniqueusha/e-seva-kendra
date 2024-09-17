@@ -638,6 +638,44 @@ const getAdhaDownload = async (req, res) => {
     }
 };
 
+// Delete Adha Document.
+const deleteAdhaDocuments = async (req, res) => {
+    const adhaId = parseInt(req.params.id);
+    const adhaDocumentId = parseInt(req.query.Id);
+    
+    // Attempt to obtain a database connection
+    let connection = await getConnection();
+
+    try {
+        // Start a transaction
+        await connection.beginTransaction();
+        //check Adha exists
+        const adhaIdExistsQuery = "SELECT * FROM adha WHERE id = ?";
+        const adhaIdExistsResult = await connection.query(adhaIdExistsQuery, [adhaId]);
+        if (adhaIdExistsResult[0].length === 0) {
+            return error422("Adha not Found.", res);
+        }
+
+        //delete adha document..
+        const deleteAdhaDocumentQuery = `DELETE FROM adha_documents WHERE id = ? AND adha_document_id = ?`;
+        const deleteAdhaDocumentsResult = await connection.query(deleteAdhaDocumentQuery, [adhaId, adhaDocumentId]);
+        if (deleteAdhaDocumentsResult[0].length == 0) {
+             return error422("Adha Document Not Found.", res);
+        }
+        
+        // Commit the transaction
+        await connection.commit();
+        return res.status(200).json({
+            status: 200,
+            message: "Adha Document Delete successfully.",
+        });
+    } catch (error) {
+      await connection.rollback();
+      return error500(error, res);
+    } finally {
+      await connection.release();
+    }
+};
 
 module.exports = {
         addAdha,
@@ -646,5 +684,6 @@ module.exports = {
         updateAdha,
         getAdhasReport,
         verificationStatusChange,
-        getAdhaDownload
+        getAdhaDownload,
+        deleteAdhaDocuments
 }
