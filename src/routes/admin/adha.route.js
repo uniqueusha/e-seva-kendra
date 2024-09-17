@@ -10,7 +10,10 @@ router.get('/download-adha',adhaController.getAdhaDownload);
 router.get('/report',checkAuth,adhaController.getAdhasReport);
 router.get('/:id',checkAuth,adhaController.getAdha);
 router.put('/:id',checkAuth,adhaController.updateAdha);
-router.patch('/:id',adhaController.verificationStatusChange)
+router.patch('/:id',adhaController.verificationStatusChange);
+router.delete('/:id',checkAuth,adhaController.deleteAdhaDocuments);
+
+
 
 
 module.exports = router
